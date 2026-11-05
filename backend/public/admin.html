@@ -4,19 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#FFFFFF">
   <title>Админка · Нептун</title>
+  <script src="/assets/js/theme-boot.js?v=1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/assets/css/tokens.css">
   <link rel="stylesheet" href="/admin/admin.css">
-  <script type="module" src="/admin/admin.js"></script>
+  <script type="module" src="/admin/admin.js?v=2"></script>
 </head>
 <body>
   <header class="top">
     <div class="wrap top__inner">
       <a class="brand" href="/" title="На сайт">
-        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M2 20c4 0 4-3 7-3s3 3 7 3 4-3 7-3 3 3 7 3M2 26c4 0 4-3 7-3s3 3 7 3 4-3 7-3 3 3 7 3M16 4v11M10 7l6-3 6 3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#1AA3C8"/><path d="M5 19c3-2 5-2 8 0s5 2 8 0 5-2 6-1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M16 6v9M12 8v5M20 8v5" stroke="#FFC83A" stroke-width="2.4" stroke-linecap="round"/></svg>
         <span>Нептун <small>админка</small></span>
       </a>
       <button class="ghost" id="logout" type="button" hidden>Выйти</button>
@@ -38,6 +40,7 @@
     <nav class="switch" id="switch" hidden aria-label="Разделы админки">
       <button type="button" data-view="list" aria-pressed="true">Отзывы</button>
       <button type="button" data-view="users" aria-pressed="false">Клиенты и абонементы</button>
+      <button type="button" data-view="visits" aria-pressed="false">Билеты</button>
     </nav>
 
     <section id="listView" hidden>
@@ -75,6 +78,25 @@
       <div class="empty card" id="usersEmpty" hidden>
         <p><strong>Клиентов пока нет.</strong></p>
         <p class="muted">Они появятся после регистрации в личном кабинете на сайте (/account).</p>
+      </div>
+    </section>
+    <section id="visitsView" hidden>
+      <div class="head">
+        <div>
+          <h1>Билеты (визиты)</h1>
+          <p class="muted" id="visitsSummary">Загружаем…</p>
+          <p class="muted">Онлайн-покупка билетов в аквапарк с главной: калькулятор → оплата картой. Гость называет номер заказа на входе.</p>
+        </div>
+        <div class="tools">
+          <input id="visitSearch" type="search" placeholder="Почта или номер заказа" aria-label="Поиск визита">
+          <button class="ghost" id="visitsRefresh" type="button">Обновить</button>
+        </div>
+      </div>
+      <p class="error" id="visitsError" role="alert"></p>
+      <ol class="feed" id="visitFeed" aria-live="polite"></ol>
+      <div class="empty card" id="visitsEmpty" hidden>
+        <p><strong>Визитов пока нет.</strong></p>
+        <p class="muted">Покупки появятся здесь после первой оплаты билетов на сайте.</p>
       </div>
     </section>
   </main>
@@ -125,6 +147,27 @@
         <time class="item__date"></time>
       </div>
       <p class="item__text"></p>
+    </li>
+  </template>
+
+  <template id="visitTpl">
+    <li class="card item visit">
+      <div class="item__meta">
+        <div class="visit__guests">
+          <b class="visit__count"></b>
+          <span class="visit__tariff muted"></span>
+        </div>
+        <div>
+          <strong class="item__name"></strong>
+          <span class="visit__contact muted"></span>
+        </div>
+        <div class="visit__right">
+          <span class="visit__price"></span>
+          <span class="pill"></span>
+          <time class="item__date"></time>
+        </div>
+      </div>
+      <p class="visit__receipt muted"></p>
     </li>
   </template>
 </body>

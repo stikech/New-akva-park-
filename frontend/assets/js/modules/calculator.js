@@ -23,6 +23,15 @@ export function initCalculator(root, park, initialDay) {
     outputs.total.textContent = formatPrice(calcParkTotal(park, state));
   }
 
+  // Покупка билетов: модуль visit-checkout.js ловит событие и открывает чекаут
+  const buyBtn = root.querySelector('[data-visit-buy]');
+  buyBtn?.addEventListener('click', (event) => {
+    root.dispatchEvent(new CustomEvent('neptun:visit-buy', {
+      bubbles: true,
+      detail: { ...state, source: event.currentTarget },
+    }));
+  });
+
   root.querySelectorAll('.stepper button').forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.dataset.guest;

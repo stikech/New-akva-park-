@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="assets/css/main.css?v=4">
+  <link rel="stylesheet" href="assets/css/main.css?v=6">
 
-  <script type="module" src="assets/js/main.js?v=4"></script>
+  <script type="module" src="assets/js/main.js?v=5"></script>
 </head>
 <body>
 
@@ -198,7 +198,8 @@
             </div>
           </div>
           <div class="total"><span>Итого</span><b data-total>—</b></div>
-          <p class="note">Ориентировочно. Окончательную сумму считает касса.</p>
+          <button class="btn primary btn--block calc__buy" type="button" data-visit-buy data-i18n="calcBuy">Купить билеты</button>
+          <p class="note" data-i18n="calcNote">Оплата картой на сайте — билеты сразу после оплаты, касса не нужна.</p>
         </div>
       </div>
 
@@ -397,11 +398,21 @@
 </main>
 
 <footer>
-  <div class="wrap">
-    <span>Аквапарк «Нептун», Петропавловск</span>
-    <span>Цены — по прейскуранту akvapark.kz. Концепт редизайна.</span>
+  <div class="wrap footer__top">
+    <span class="footer__brand">Аквапарк «Нептун», Петропавловск</span>
+    <a class="footer__tel" href="tel:+77152336141">+7 7152 33-61-41</a>
+  </div>
+  <div class="wrap footer__bottom">
+    <span>Цены — по прейскуранту akvapark.kz</span>
+    <span>ул. Юрия Медведева, 41</span>
   </div>
 </footer>
+
+<!-- Покупка билетов (калькулятор → visit-checkout.js) -->
+<div class="visit-modal" id="visitModal" hidden>
+  <div class="visit-modal__overlay" data-visit-close></div>
+  <div class="visit-modal__card" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle"></div>
+</div>
 
 </body>
 </html>

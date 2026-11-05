@@ -15,13 +15,17 @@ const storage = {
 let token = storage.get();
 let items = [];
 let users = [];
+let visitItems = [];
 let catalog = [];
 let today = '';
-let current = 'list'; // открытый раздел: list (отзывы) | users (клиенты)
+let current = 'list'; // открытый раздел: list (отзывы) | users (клиенты) | visits (билеты)
 
 const dateFmt = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   timeZone: 'Asia/Almaty', // Петропавловск: UTC+5, как во всём Казахстане
+});
+const visitFmt = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Almaty',
 });
 
 function plural(n, [one, few, many]) {
@@ -36,6 +40,7 @@ function show(view) {
   $('loginView').hidden = view !== 'login';
   $('listView').hidden = view !== 'list';
   $('usersView').hidden = view !== 'users';
+  $('visitsView').hidden = view !== 'visits';
   $('switch').hidden = view === 'login';
   $('logout').hidden = view === 'login';
   $('switch').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
@@ -232,6 +237,71 @@ async function loadUsers() {
   }
 }
 
+// ---------- визиты (онлайн-билеты аквапарка) ----------
+
+const DAY_LABEL = { weekday: 'Будни', weekend: 'Выходные' };
+const DURATION_LABEL = { h2: '2 часа', unl: 'Без лимита' };
+const VISIT_STATUS_LABEL = { pending: 'Ожидает оплаты', paid: 'Оплачен', cancelled: 'Отменён', expired: 'Истёк' };
+
+function visitorsLabel(v) {
+  const n = v.adults + v.children;
+  return `${n} ${plural(n, ['билет', 'билета', 'билетов'])} · ${v.adults} взр.${v.children ? `, ${v.children} дет.` : ''}`;
+}
+
+function renderVisits() {
+  const q = $('visitSearch').value.trim().toLowerCase();
+  const visible = q
+    ? visitItems.filter((v) => [v.email ?? '', v.firstName ?? '', v.id, v.user?.email ?? '']
+      .some((s) => String(s).toLowerCase().includes(q)))
+    : visitItems;
+  $('visitFeed').replaceChildren(...visible.map(renderVisit));
+  $('visitsEmpty').hidden = visible.length > 0;
+  $('visitsEmpty').querySelector('strong').textContent = q ? 'Ничего не нашли.' : 'Визитов пока нет.';
+}
+
+function renderVisit(v) {
+  const node = $('visitTpl').content.firstElementChild.cloneNode(true);
+  node.querySelector('.item__name').textContent = v.firstName || 'Гость';
+  node.querySelector('.visit__contact').textContent = v.email ?? '—';
+  node.querySelector('.visit__count').textContent = visitorsLabel(v);
+  node.querySelector('.visit__tariff').textContent = `${DAY_LABEL[v.day] ?? v.day} · ${DURATION_LABEL[v.duration] ?? v.duration}`;
+  node.querySelector('.item__date').dateTime = v.createdAt;
+  node.querySelector('.item__date').textContent = visitFmt.format(new Date(v.createdAt));
+  node.querySelector('.visit__price').textContent = `${v.price.toLocaleString('ru-RU')} ₸`;
+  const pill = node.querySelector('.pill');
+  pill.textContent = VISIT_STATUS_LABEL[v.status] ?? v.status;
+  pill.dataset.code = v.status;
+  const receipt = node.querySelector('.visit__receipt');
+  const parts = [`заказ ${v.id.slice(0, 8)}…`];
+  if (v.receipt) parts.push(`чек ${v.receipt.receiptId} · подпись ${v.receipt.valid ? 'верна' : 'не подтверждена'}`);
+  if (v.attempts) parts.push(`попыток оплаты: ${v.attempts}`);
+  receipt.textContent = parts.join(' · ');
+  return node;
+}
+
+function renderVisitsSummary() {
+  const paid = visitItems.filter((v) => v.status === 'paid');
+  const sum = paid.reduce((acc, v) => acc + v.price, 0);
+  const paidToday = paid.filter((v) => v.paidAt && v.paidAt.slice(0, 10) === today).length;
+  $('visitsSummary').textContent = `${visitItems.length} ${plural(visitItems.length, ['визит', 'визита', 'визитов'])} · оплачено сегодня: ${paidToday} · всего онлайн-билетов: ${sum.toLocaleString('ru-RU')} ₸`;
+}
+
+async function loadVisits() {
+  $('visitsError').textContent = '';
+  $('visitsSummary').textContent = 'Загружаем…';
+  try {
+    const data = await api('/api/admin/visits');
+    ({ today } = data);
+    visitItems = data.items;
+    renderVisitsSummary();
+    renderVisits();
+  } catch (error) {
+    if (error.status === 401 || error.status === 503 || error.status === 429) return load();
+    $('visitsSummary').textContent = '';
+    $('visitsError').textContent = `Не удалось загрузить визиты: ${error.message}`;
+  }
+}
+
 function exportCsv() {
   const cell = (v) => {
     let s = String(v ?? '');
@@ -265,12 +335,15 @@ $('logout').addEventListener('click', () => {
 
 $('refresh').addEventListener('click', load);
 $('usersRefresh').addEventListener('click', loadUsers);
+$('visitsRefresh').addEventListener('click', loadVisits);
 $('userSearch').addEventListener('input', renderUsers);
+$('visitSearch').addEventListener('input', renderVisits);
 $('switch').addEventListener('click', (event) => {
   const btn = event.target.closest('button[data-view]');
   if (!btn) return;
   show(btn.dataset.view);
   if (btn.dataset.view === 'users') loadUsers();
+  if (btn.dataset.view === 'visits') loadVisits();
 });
 $('search').addEventListener('input', render);
 $('exportCsv').addEventListener('click', exportCsv);

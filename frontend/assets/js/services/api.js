@@ -117,6 +117,16 @@ export const scheduleApi = {
   cancel: (key) => accountRequest('DELETE', `/bookings/${key}`, {}),
 };
 
+/**
+ * Онлайн-билеты аквапарка (калькулятор на главной): покупка без входа в кабинет.
+ * Идемпотентность обязательна, как у абонементов: повтор сети не списывает дважды.
+ */
+export const visitApi = {
+  create: (payload) => accountRequest('POST', '/visits', payload, { idempotencyKey: crypto.randomUUID() }),
+  visit: (id) => accountRequest('GET', `/visits/${id}`),
+  pay: (id, card) => accountRequest('POST', `/visits/${id}/pay`, card),
+};
+
 /** fetch с таймаутом и проверкой статуса. */
 async function fetchJson(url, { timeoutMs = 8000, ...init } = {}) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });

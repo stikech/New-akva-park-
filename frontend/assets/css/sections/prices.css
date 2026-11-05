@@ -26,3 +26,86 @@
 
 .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18px; }
 .total b { color: var(--total); font: 700 34px "Unbounded"; }
+
+/* Покупка билетов и модальный чекаут */
+
+.calc__buy { margin-top: 16px; }
+
+body.visit-modal-open { overflow: hidden; }
+
+.visit-modal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; }
+.visit-modal[hidden] { display: none; }
+.visit-modal__overlay {
+  position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--deep) 55%, transparent);
+  backdrop-filter: blur(3px);
+  animation: vc-fade 0.2s ease both;
+}
+.visit-modal__card {
+  position: relative;
+  width: min(100%, 460px);
+  max-height: min(92vh, 720px);
+  overflow: auto;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: 0 24px 64px -24px rgba(12, 51, 80, 0.45);
+  animation: vc-rise 0.24s ease both;
+}
+@media (min-width: 720px) { .visit-modal__card { padding: 28px; } }
+@keyframes vc-fade { from { opacity: 0; } }
+@keyframes vc-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) {
+  .visit-modal__overlay, .visit-modal__card { animation: none; }
+}
+
+.vc-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.vc-title { margin: 0; font: 700 22px/1.2 "Unbounded", system-ui, sans-serif; letter-spacing: -0.01em; }
+.vc-close {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  border: 0; border-radius: 50%;
+  background: var(--mist); color: var(--muted);
+  font: 400 20px/1 system-ui, sans-serif;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.vc-close:hover { color: var(--ink); }
+
+.vc-summary { margin: 10px 0 0; color: var(--muted); font-size: 14.5px; }
+.vc-summary b { color: var(--ink); }
+
+/* Форма чекаута повторяет язык кабинета: те же классы, локальные замены */
+#visitForm { margin-top: 16px; display: grid; gap: 14px; align-content: start; }
+.visit-modal .btn--block { width: 100%; }
+.visit-modal .acc-status { font-size: 14px; margin: 0; }
+.visit-modal .acc-status:empty { display: none; }
+.visit-modal .acc-status[data-kind="error"] { color: var(--error); }
+.vc-cols { display: grid; gap: 14px; }
+@media (min-width: 560px) { .vc-cols { grid-template-columns: 1fr 1fr; gap: 12px; } }
+@media (min-width: 560px) { .vc-cols { grid-template-columns: 1fr 1fr; gap: 12px; } }
+
+.vc-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--muted); margin-top: 12px; cursor: pointer; }
+.vc-consent input { width: 18px; height: 18px; accent-color: var(--water-ink); margin-top: 1px; }
+.vc-consent a { color: var(--water-ink); }
+
+.vc-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 8px;
+  padding: 14px 16px;
+  background: var(--lagoon);
+  border-radius: var(--r-sm);
+}
+.vc-amount b { color: var(--total); font: 700 22px "Unbounded"; }
+
+.vc-note { margin-top: 10px; }
+.vc-actions { margin-top: 16px; }
+
+.vc-list { margin: 14px 0 0; display: grid; gap: 8px; }
+.vc-list > div { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.vc-list dt { color: var(--muted); font-size: 14px; }
+.vc-list dd { margin: 0; text-align: right; overflow-wrap: anywhere; }

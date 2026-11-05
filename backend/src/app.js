@@ -7,8 +7,11 @@
  *   POST /api/feedback          — отзыв с сайта
  *   GET  /api/admin/feedback    — список отзывов, Authorization: Bearer <ADMIN_TOKEN>
  *   /api/auth/*, /api/account*, /api/admin/users|membership|visit — личный кабинет (accounts.js)
+ *   /api/orders/*               — покупка и продление абонементов (payments.js)
+ *   /api/bookings/*             — запись на занятия (bookings.js)
+ *   /api/visits/*               — онлайн-билеты аквапарка из калькулятора (visits.js)
  *   GET  /admin                 — страница администратора
- *   GET  /account               — личный кабинет
+ *   GET  /account[/раздел]      — личный кабинет: /account/overview, /account/shop…
  *   GET  /, /assets/*           — фронтенд
  */
 
@@ -26,6 +29,8 @@ import { createBookingStore } from './booking-store.js';
 import { createAudit } from './audit.js';
 import { createPaymentRoutes } from './payments.js';
 import { createBookingRoutes } from './bookings.js';
+import { createVisitRoutes } from './visits.js';
+import { createVisitStore } from './visit-store.js';
 
 const sha256 = (s) => createHash('sha256').update(s).digest();
 
@@ -34,6 +39,7 @@ export function createApp({
   accounts = createAccountStore(config.dataDir),
   orders = createOrderStore(config.dataDir),
   bookings = createBookingStore(config.dataDir),
+  visits = createVisitStore(config.dataDir),
   journal = createAudit(config.dataDir),
   clock,
 }) {
@@ -55,6 +61,9 @@ export function createApp({
   });
   const bookingRoutes = createBookingRoutes({
     config, accounts, bookings, journal, requireUser, requireAdmin, log, ...extraClock,
+  });
+  const visitRoutes = createVisitRoutes({
+    config, visits, journal, accounts, requireUser, requireAdmin, log, ...extraClock,
   });
 
   function isAdmin(req) {
@@ -140,12 +149,13 @@ export function createApp({
 
     ...paymentRoutes.routes,
     ...bookingRoutes.routes,
+    ...visitRoutes.routes,
   };
 
   // Динамические маршруты с параметрами: /api/orders/:id, /api/bookings/:key.
   // Сегменты `:имя` передаются обработчику в params; расширять — по образцу payments.js.
   const dynamicRoutes = [];
-  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic]) {
+  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic]) {
     for (const [key, handler] of Object.entries(definition)) {
       const [method, pattern] = key.split(' ');
       dynamicRoutes.push({ method, segments: pattern.split('/').filter(Boolean), handler });
@@ -201,7 +211,9 @@ export function createApp({
       if (await serveFile(req, res, config.publicDir, pathname.slice('/admin/'.length))) return;
     } else if (pathname === '/' || pathname === '/index.html') {
       if (await serveFile(req, res, config.frontendDir, 'index.html')) return;
-    } else if (pathname === '/account' || pathname === '/account/') {
+    } else if (pathname === '/account' || pathname === '/account/' || pathname.startsWith('/account/')) {
+      // Каждая кнопка дашборда — отдельный URL: /account/overview, /account/profile…
+      // Неизвестные разделы разгребает JS на странице (redirect на /account/overview).
       if (await serveFile(req, res, config.frontendDir, 'account.html')) return;
     } else if (pathname.startsWith('/assets/')) {
       // Отдаём только assets/ — tests/ и package.json фронтенда наружу не нужны.

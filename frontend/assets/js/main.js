@@ -10,6 +10,7 @@ import { initWeather } from './modules/weather.js?v=2';
 import { initSlides } from './modules/slides.js';
 import { renderParkPrices, renderPoolPrices } from './modules/prices.js';
 import { initCalculator } from './modules/calculator.js';
+import { initVisitCheckout } from './modules/visit-checkout.js';
 import { initTabs } from './modules/tabs.js';
 import { renderFitness } from './modules/fitness.js';
 import { renderSchedulePreview } from './modules/schedule-preview.js';
@@ -48,6 +49,7 @@ async function bootstrap() {
   renderParkPrices({ rows: $('#parkRows'), note: $('#parkNote') }, data.prices.park);
   renderPoolPrices({ rows: $('#poolRows'), saving: $('#poolSaving') }, data.prices.pool);
   initCalculator($('#calculator'), data.prices.park, dayType(today));
+  initVisitCheckout({ modal: $('#visitModal'), park: data.prices.park });
   initTabs($('#priceTabs'), { sync: true });
 
   renderFitness(

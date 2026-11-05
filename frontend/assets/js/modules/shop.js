@@ -151,7 +151,7 @@ export function initShop({ root, getUser, refreshUser, goto }) {
             <span>${currentActive() && isCurrent({ id: order.planId }) ? 'продление текущего абонемента' : order.category === 'pool' ? 'абонемент на бассейн' : 'абонемент фитнес-клуба'}</span>
           </p>
           <p class="shop-checkout__amount"><span>К оплате</span><b>${formatPrice(order.price)}</b></p>
-          ${phoneMissing ? `<p class="note">Телефон в профиле не указан — администрация не сможет связаться с вами по вопросу заказа. <a href="#profile" data-goto="tab-profile" data-edit="1">Заполнить телефон</a>.</p>` : ''}
+          ${phoneMissing ? `<p class="note">Телефон в профиле не указан — администрация не сможет связаться с вами по вопросу заказа. <a href="/account/profile" data-goto="tab-profile" data-edit="1">Заполнить телефон</a>.</p>` : ''}
           <form id="payForm" class="acc-form" novalidate>
             <div class="field">
               <label for="pay-number">Номер карты</label>
@@ -207,7 +207,7 @@ export function initShop({ root, getUser, refreshUser, goto }) {
           </dl>
           ${m ? `<p class="note">${escapeHtml(m.title.split(' · ').slice(1).join(' · ') || m.title)} · осталось ${m.visitsTotal == null ? 'безлимит' : `${m.status.visitsLeft} ${plural(m.status.visitsLeft, ['посещение', 'посещения', 'посещений'])}`}${m.endsAt ? `, действует до ${new Date(`${m.endsAt}T00:00:00Z`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}` : ''}</p>` : ''}
           <div class="acc-actions">
-            <a class="btn primary" href="#schedule" data-goto-init="tab-schedule">Записаться на занятие</a>
+            <a class="btn primary" href="/account/schedule" data-goto-init="tab-schedule">Записаться на занятие</a>
             <button class="btn outline" type="button" data-shop-back>В каталог</button>
           </div>
         </div>

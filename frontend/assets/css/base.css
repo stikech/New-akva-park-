@@ -76,6 +76,10 @@ a { color: inherit; }
 
 section { padding: clamp(56px, 9vw, 88px) 0; }
 .section--flush-top { padding-top: 0; }
+/* Контент секции начинается сразу с заголовка: без запаса глифы Unbounded
+   выступают над боксом и упираются в липкую шапку. Общий margin — 72px,
+   здесь нужен больше: section[id] специфичнее класса, поэтому поднимаем селектор. */
+section[id].section--flush-top { scroll-margin-top: 92px; }
 
 .lead { color: var(--muted); max-width: 56ch; margin-top: 16px; }
 

@@ -6,7 +6,7 @@
 тогда UI менять не придётся. Тесты `frontend/tests/site-data.test.js` проверяют её целостность.
 
 Статус: **реализовано** в `backend/` (`GET /api/site`, `POST /api/feedback`, `GET /api/admin/feedback`,
-`GET /api/health`, магазин в кабинете `payments.js`, расписание `bookings.js`).
+`GET /api/health`, магазин в кабинете `payments.js`, онлайн-билеты `visits.js`, расписание `bookings.js`).
 
 ## `GET /api/site`
 
@@ -109,6 +109,11 @@
 Сессия — cookie `neptun_sid` (HttpOnly), браузер шлёт её сам. Изменяющие запросы — только
 `Content-Type: application/json` и с `Origin` этого же сайта (иначе `403`). Ошибки полей — `422 { "errors": { поле: текст } }`,
 нет сессии — `401`, лимит попыток — `429 { error, retryAfterSec }`.
+
+Каждая кнопка дашборда — отдельный адрес: `/account` (обзор), `/account/profile`, `/account/membership`,
+`/account/shop`, `/account/schedule`, `/account/settings`. Роутинг — на клиенте (`history API` +
+`popstate`, ленивые загрузки при смене раздела), сервер на любой `/account/*` отдаёт `account.html`;
+на сам API это не влияет.
 
 | Метод и путь | Тело | Ответ |
 | --- | --- | --- |
@@ -217,6 +222,37 @@
   номера заказа проверяются regex'ом), всё, что попадает в HTML, экранируется на фронте.
 - Чужой заказ и несуществующий — один и тот же `404` (не раскрываем существование чужих заказов).
 
+## Онлайн-билеты аквапарка: визиты
+
+Гость покупает билет прямо с главной страницы (секция «Цены», калькулятор) — без регистрации.
+Состав гостей и день выбираются в калькуляторе, цена считается **только на сервере** —
+`calcParkTotal(SITE_DATA.prices.park, { adults, children, day, duration })`. контакт кладётся
+в сам визит, покупка работает и для анонима (сессия не обязательна). На входе гость называет
+номер заказа — браслет выдают по нему. Маршруты — `backend/src/visits.js`, хранилище —
+`DATA_DIR/visits.json`, тот же append-only `audit.jsonl`.
+
+| Метод и путь | Тело | Ответ |
+| --- | --- | --- |
+| `POST /api/visits` | `{ adults, children, day: "weekday"\|"weekend", duration: "h2"\|"unl", contact: { email, firstName?, phone? }, consent: true }` + заголовок `Idempotency-Key` | `201 { visit }` (или `200` при повторе — тот же визит); `422 { errors }`; `429` — лимиты |
+| `GET /api/visits/:id` | — | `200 { visit }`; `404` |
+| `POST /api/visits/:id/pay` | `{ number, exp, cvc, holder }` | `200 { visit, alreadyPaid? }`; `402 { error, code }` — отклонение; `422 { errors }` — карта не прошла валидацию |
+| `GET /api/admin/visits` | — | `200 { items: visit[], total, today }` — все визиты с контактом (Bearer `ADMIN_TOKEN`) |
+
+```jsonc
+// visit (kind отличает его от заказа абонемента). Ответы гостю (/api/visits*) — состав,
+// цена и статус; контакт добавляется только в админ-лист.
+{ "id": "uuid", "kind": "visit", "adults": 2, "children": 1, "day": "weekend", "duration": "unl",
+  "price": 19600, "status": "pending" /* pending|paid|cancelled|expired */,
+  // контакт — только в ответе /api/admin/visits (+ email аккаунта в v.user, если гость был вошедшим):
+  "email": "гость@example.com", "firstName": "Ольга", "phone": null, "userId": null,
+  "createdAt": "…", "updatedAt": "…", "paidAt": null, "attempts": 0, "receipt": null }
+```
+
+Оплата, чеки, идемпотентность, лимиты и сценарии эмулятора шлюза — те же, что у магазина абонементов
+(см. раздел выше): состав гостей со стороны клиента не влияет на цену, контакты валидируются
+на сервере, `pending → paid` атомарен, повторная оплата отвечает `alreadyPaid: true`.
+Неоплаченный визит живёт 24 часа, потом `expired`.
+
 ## Расписание и записи на занятия
 
 Маршруты — `backend/src/bookings.js`, расписание строится из `site-data.js → schedule`,
@@ -265,6 +301,8 @@
 - `null` в характеристиках горок допустим: UI покажет «уточняется».
 - Строки выводятся с экранированием (`escapeHtml`), но бэкенд всё равно не должен отдавать HTML.
 - Ошибка API не должна ломать страницу: `main.js` логирует ошибку, статическая разметка остаётся.
+- Любая страница кабинетной группы (`/account/<section>`) отдаёт один и тот же `account.html` —
+  состояние решает клиент-роутер.
 
 ## Что логично добавить на бэкенде
 
@@ -275,6 +313,7 @@
 | `GET /api/admin/feedback` | ✅ список отзывов |
 | `/api/auth/*`, `/api/account*`, `/api/admin/users…` | ✅ личный кабинет и абонементы |
 | `/api/orders*`, `/api/admin/orders` | ✅ покупка и продление абонементов картой |
+| `/api/visits*`, `/api/admin/visits` | ✅ онлайн-билеты аквапарка (анонимно, с главной) |
 | `/api/schedule`, `/api/bookings*`, `/api/admin/bookings` | ✅ расписание и запись на занятия |
 | `POST /api/auth/reset` | восстановление пароля по почте (нужен SMTP) |
 | `PUT /api/admin/…` | редактирование цен, расписания, команды администратором (с авторизацией) |

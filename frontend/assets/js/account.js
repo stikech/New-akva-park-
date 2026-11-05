@@ -1,6 +1,11 @@
 /**
- * Личный кабинет (/account): вход и регистрация, дашборд с вкладками
- * «Обзор», «Мой профиль», «Абонемент», «Настройки».
+ * Личный кабинет (/account/<раздел>): вход и регистрация, страницы дашборда
+ * «Обзор», «Мой профиль», «Абонемент», «Магазин», «Расписание», «Настройки».
+ *
+ * У каждой кнопки меню — свой URL (/account/overview, /account/profile…):
+ * переходы работают и как обычные ссылки, и как pushState-переходы без
+ * перезагрузки. Неизвестный раздел, `/account` без раздела и легаси-хеши
+ * (#schedule и т. п.) сводятся на /account/overview.
  *
  * Сессия — HttpOnly-cookie, JS её не видит; состояние «вошёл ли» узнаём у API.
  * Данные из API выводятся через textContent или escapeHtml — без сырого HTML.
@@ -21,7 +26,8 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const LANG_KEY = 'neptun-lang'; // тот же ключ, что у переключателя языка на главной
 const TZ_OFFSET = 5; // Петропавловск, UTC+5
-const TABS = ['overview', 'profile', 'membership', 'shop', 'schedule', 'settings'];
+const SECTIONS = ['overview', 'profile', 'membership', 'shop', 'schedule', 'settings'];
+const ACCOUNT_BASE = '/account'; // разделы: /account/<section>
 const LANG_NAMES = { ru: 'Русский', kz: 'Қазақша' };
 
 const dateFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -40,6 +46,7 @@ const words = {
 };
 
 let user = null;
+let currentSection = 'overview';
 let shopCtl = null; // модуль магазина (initShop) — подключается в bootstrap()
 let bookingCtl = null; // модуль расписания (initBooking)
 let scheduleStale = true; // расписание надо перечитать (после входа или смены абонемента)
@@ -89,7 +96,7 @@ function persistLang(lang) {
   try { localStorage.setItem(LANG_KEY, lang); } catch { /* приватный режим */ }
 }
 
-// ---------- экраны ----------
+// ---------- иерархия экранов и навигация ----------
 
 function show(view) {
   $('#loadingView').hidden = view !== 'loading';
@@ -98,13 +105,60 @@ function show(view) {
   $('#logoutTop').hidden = view !== 'account';
 }
 
+/** Раздел из URL. null — /account без раздела; '?' — неизвестный раздел. */
+function sectionFromPath(pathname = location.pathname) {
+  const name = pathname.slice(`${ACCOUNT_BASE}/`.length).split('/')[0];
+  if (!name) return null;
+  return SECTIONS.includes(name) ? name : '?';
+}
+
+/** Показ страницы дашборда (панель уже в DOM, это выборка и ленивые загрузки). */
+function showSection(section) {
+  currentSection = section;
+  SECTIONS.forEach((t) => {
+    $(`#panel-${t}`).hidden = t !== section;
+  });
+  $$('#dashNav .dash-nav__item').forEach((link) => {
+    if (link.dataset.section === section) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  if (section !== 'profile') setEditing(false);
+  if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'instant' });
+  // Магазин и расписание грузим при входе на страницу, а не при входе в кабинет:
+  // пользователь видит кабинет сразу, запросы идут ровно те, что нужны.
+  if (section === 'shop' && user) shopCtl?.ensure();
+  if (section === 'schedule' && user) {
+    bookingCtl?.load({ force: scheduleStale });
+    scheduleStale = false;
+  }
+}
+
+/**
+ * Переход на страницу раздела. history API — только для внутренних ссылок:
+ * браузер сам управляет URL, JS подменяет контент без перезагрузки.
+ */
+function navigate(section, { replace = false } = {}) {
+  if (!SECTIONS.includes(section)) section = 'overview';
+  const url = `${ACCOUNT_BASE}/${section}`;
+  if (replace) history.replaceState(null, '', url);
+  else history.pushState(null, '', url);
+  showSection(section);
+}
+
+/** Переключение разделов из модулей (кнопки «В магазин», «Записаться»). */
+function goto(section) {
+  navigate(section);
+}
+
 function onSignedIn(nextUser) {
   user = nextUser;
   persistLang(user.lang);
   scheduleStale = true; // у нового сеанса свои посещения и записи
   renderAll();
   show('account');
-  selectTab(tabFromHash() ?? 'overview', { focus: false });
+  // Открываем тот раздел, что в URL (или обзор, если раздела нет/чужой)
+  const requested = sectionFromPath();
+  navigate(requested === null || requested === '?' ? 'overview' : requested, { replace: true });
 }
 
 function onSignedOut(message = '') {
@@ -141,74 +195,6 @@ async function refreshUser() {
   }
 }
 
-/** Переключение вкладок из модулей (кнопки «В магазин», «Записаться»). */
-function gotoTab(tab) {
-  selectTab(tab, { focus: false });
-}
-
-// ---------- вкладки дашборда ----------
-
-function tabFromHash() {
-  const name = location.hash.slice(1);
-  return TABS.includes(name) ? name : null;
-}
-
-function selectTab(name, { focus = true, updateHash = true } = {}) {
-  TABS.forEach((t) => {
-    const tab = document.getElementById(`tab-${t}`);
-    const selected = t === name;
-    tab.setAttribute('aria-selected', String(selected));
-    tab.tabIndex = selected ? 0 : -1;
-    document.getElementById(`panel-${t}`).hidden = !selected;
-  });
-  if (name !== 'profile') setEditing(false);
-  if (updateHash) history.replaceState(null, '', `#${name}`);
-  if (focus) document.getElementById(`tab-${name}`).focus();
-  // На телефоне вкладка открывается с начала, а не с середины прошлой
-  if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'instant' });
-  // Магазин и расписание грузим при открытии вкладки, а не при входе:
-  // пользователь видит кабинет сразу, запросы идут ровно те, что нужны.
-  if (name === 'shop' && user) shopCtl?.ensure();
-  if (name === 'schedule' && user) {
-    bookingCtl?.load({ force: scheduleStale });
-    scheduleStale = false;
-  }
-}
-
-function initDashTabs() {
-  const nav = $('#dashNav');
-  nav.addEventListener('click', (event) => {
-    const tab = event.target.closest('[role="tab"]');
-    if (tab) selectTab(tab.id.replace('tab-', ''), { focus: false });
-  });
-  nav.addEventListener('keydown', (event) => {
-    const i = TABS.indexOf(document.activeElement.id.replace('tab-', ''));
-    if (i < 0) return;
-    const next = {
-      ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1,
-    }[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    selectTab(TABS[(next + TABS.length) % TABS.length]);
-  });
-  // Ссылки внутри кабинета вида data-goto="tab-profile"
-  document.addEventListener('click', (event) => {
-    const link = event.target.closest('[data-goto]');
-    if (!link) return;
-    event.preventDefault();
-    selectTab(link.dataset.goto.replace('tab-', ''), { focus: false });
-    if (link.dataset.edit) setEditing(true);
-    // Кнопка «Продлить/Купить» на карте абонемента ведёт в магазин к своему тарифу
-    if (link.dataset.shopPlan) {
-      document.dispatchEvent(new CustomEvent('neptun:shop-open', { detail: { planId: link.dataset.shopPlan } }));
-    }
-  });
-  window.addEventListener('hashchange', () => {
-    const name = tabFromHash();
-    if (name && user) selectTab(name, { focus: false, updateHash: false });
-  });
-}
-
 // ---------- рендер ----------
 
 const fullName = (u) => [u.firstName, u.lastName].filter(Boolean).join(' ');
@@ -242,16 +228,16 @@ function greeting() {
 }
 
 function membershipSentence(m) {
-  if (!m) return 'Абонемента пока нет — выберите тариф во вкладке «Магазин» и оформите без визита на кассу.';
+  if (!m) return 'Абонемента пока нет — выберите тариф на странице «Магазин» и оформите без визита на кассу.';
   const s = m.status;
   if (s.code === 'active') {
     const visits = m.visitsTotal == null ? 'безлимитные посещения' : `осталось ${s.visitsLeft} ${plural(s.visitsLeft, words.visits)}`;
     const until = m.endsAt ? ` до ${formatDate(m.endsAt)}` : '';
-    return `Абонемент действует${until}: ${visits}. Запишитесь на занятие во вкладке «Расписание».`;
+    return `Абонемент действует${until}: ${visits}. Запишитесь на занятие на странице «Расписание».`;
   }
   if (s.code === 'scheduled') return `Абонемент начнёт действовать ${formatDate(m.startsAt)}.`;
-  if (s.code === 'expired') return 'Срок абонемента истёк — продлить можно онлайн во вкладке «Магазин».';
-  return 'Посещения по абонементу закончились — продлить можно онлайн во вкладке «Магазин».';
+  if (s.code === 'expired') return 'Срок абонемента истёк — продлить можно онлайн на странице «Магазин».';
+  return 'Посещения по абонементу закончились — продлить можно онлайн на странице «Магазин».';
 }
 
 function kpi(iconName, label, value, hint = '') {
@@ -296,7 +282,7 @@ function renderOverview() {
       ${['Имя', 'Фамилия', 'Телефон', 'Дата рождения'].map((label) => `
         <li class="${missing.includes(label) ? '' : 'done'}">${icon('check')}${label}</li>`).join('')}
     </ul>
-    ${missing.length ? `<button class="btn outline ov-fill" type="button" data-goto="tab-profile" data-edit="1">${icon('edit')}Дополнить профиль</button>` : ''}`;
+    ${missing.length ? `<a class="btn outline ov-fill" href="/account/profile" data-goto="tab-profile" data-edit="1">${icon('edit')}Дополнить профиль</a>` : ''}`;
 }
 
 function visitsHtml(visits, m) {
@@ -308,7 +294,7 @@ function visitsHtml(visits, m) {
 
 /** Кнопка «Продлить/Купить» на карте абонемента — ведёт в магазин к нужному тарифу. */
 function shopCTA(label, planId = null) {
-  return `<a class="btn primary" href="#shop" data-goto="tab-shop" ${planId ? `data-shop-plan="${escapeHtml(planId)}"` : ''}>${label}${icon('arrow')}</a>`;
+  return `<a class="btn primary" href="/account/shop" data-goto="tab-shop" ${planId ? `data-shop-plan="${escapeHtml(planId)}"` : ''}>${label}${icon('arrow')}</a>`;
 }
 
 /** Карта абонемента. compact — для «Обзора» (без подробностей, с кнопкой). */
@@ -342,8 +328,8 @@ function passHtml(m, { compact = false } = {}) {
         <div><dt>Действует до</dt><dd>${m.endsAt ? formatDate(m.endsAt) : 'без срока'}</dd></div>
         <div><dt>До окончания</dt><dd>${daysLeft}</dd></div>
       </dl>
-      <a class="btn primary" href="#membership" data-goto="tab-membership">Подробнее${icon('arrow')}</a>
-      ${status.code === 'active' || status.code === 'scheduled' ? `<a class="btn outline" href="#schedule" data-goto="tab-schedule">${icon('clock')}Записаться</a>` : ''}`
+      <a class="btn primary" href="/account/membership" data-goto="tab-membership">Подробнее${icon('arrow')}</a>
+      ${status.code === 'active' || status.code === 'scheduled' ? `<a class="btn outline" href="/account/schedule" data-goto="tab-schedule">${icon('clock')}Записаться</a>` : ''}`
     : `<dl class="pass__facts">
         <div><dt>Действует с</dt><dd>${formatDate(m.startsAt)}</dd></div>
         <div><dt>Действует до</dt><dd>${m.endsAt ? formatDate(m.endsAt) : 'без срока'}</dd></div>
@@ -352,8 +338,8 @@ function passHtml(m, { compact = false } = {}) {
         <div><dt>Стоимость</dt><dd>${formatPrice(m.price)}</dd></div>
         <div><dt>Оформлен</dt><dd>${formatDate(m.issuedAt.slice(0, 10))}</dd></div>
       </dl>
-      <a class="btn primary" href="#shop" data-goto="tab-shop" data-shop-plan="${escapeHtml(m.planId)}">${renewLabel}${icon('arrow')}</a>
-      ${status.code === 'active' ? `<a class="btn outline" href="#schedule" data-goto="tab-schedule">${icon('clock')}Записаться на занятие</a>` : ''}`;
+      <a class="btn primary" href="/account/shop" data-goto="tab-shop" data-shop-plan="${escapeHtml(m.planId)}">${renewLabel}${icon('arrow')}</a>
+      ${status.code === 'active' ? `<a class="btn outline" href="/account/schedule" data-goto="tab-schedule">${icon('clock')}Записаться на занятие</a>` : ''}`;
 
   return `
     <article class="pass${variant}" aria-label="Абонемент">
@@ -383,9 +369,9 @@ function renderMembership() {
     : `<div class="panel">
         <h3 class="acc-h3">Как оформить абонемент</h3>
         <ol class="steps">
-          <li><span>Заполните <a href="#profile" data-goto="tab-profile" data-edit="1">профиль</a> — хотя бы телефон.</span></li>
+          <li><span>Заполните <a href="/account/profile" data-goto="tab-profile" data-edit="1">профиль</a> — хотя бы телефон.</span></li>
           <li><span>Выберите абонемент: <a href="/#fitness">фитнес-клуб</a> или <a href="/#prices">бассейн</a>.</span></li>
-          <li><span>Оплатите на кассе и назовите почту <b>${escapeHtml(user.email)}</b> — абонемент привяжут к кабинету.</span></li>
+          <li><span>Оплатите в магазине кабинета по карте — или на кассе, назвав почту <b>${escapeHtml(user.email)}</b> — абонемент привяжут к кабинету.</span></li>
         </ol>
       </div>`;
   $('#membershipBox').innerHTML = `<div class="acc-columns">${passHtml(m)}${side}</div>`;
@@ -486,7 +472,7 @@ function initAuthForms() {
     if (result) {
       reg.reset();
       onSignedIn(result.user);
-      selectTab('profile', { focus: false });
+      navigate('profile');
       setEditing(true); // сразу предлагаем заполнить данные
     }
   });
@@ -614,6 +600,47 @@ function initSettings() {
   });
 }
 
+/**
+ * Навигация кабинета: ссылки меню и ссылки вида data-goto="tab-profile".
+ * Ссылки — настоящие URL: клик перехватываем для перехода без перезагрузки,
+ * но с отключённым JS они ведут на ту же страницу (браузерный роутинг).
+ */
+function initDashNav() {
+  const nav = $('#dashNav');
+  nav.addEventListener('click', (event) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const link = event.target.closest('.dash-nav__item');
+    if (!link) return;
+    event.preventDefault();
+    navigate(link.dataset.section ?? 'overview', { replace: location.pathname === `${ACCOUNT_BASE}/${link.dataset.section}` ? true : false });
+  });
+  window.addEventListener('popstate', () => {
+    if (!user || $('#accountView').hidden) return;
+    const section = sectionFromPath();
+    if (section === '?') history.replaceState(null, '', `${ACCOUNT_BASE}/overview`);
+    showSection(SECTIONS.includes(section) ? section : 'overview');
+  });
+  // Ссылки внутри кабинета вида data-goto="tab-profile" (+href нового пути)
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-goto]');
+    if (!link) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    navigate(link.dataset.goto.replace('tab-', ''));
+    if (link.dataset.edit) setEditing(true);
+    // Кнопка «Продлить/Купить» на карте абонемента ведёт в магазин к своему тарифу
+    if (link.dataset.shopPlan) {
+      document.dispatchEvent(new CustomEvent('neptun:shop-open', { detail: { planId: link.dataset.shopPlan } }));
+    }
+  });
+  // Легаси-хеши (#schedule у старых ссылок): сводим на новый URL
+  window.addEventListener('hashchange', () => {
+    if (!user || $('#accountView').hidden) return;
+    const name = location.hash.slice(1);
+    if (SECTIONS.includes(name)) navigate(name);
+  });
+}
+
 async function logout() {
   try { await accountApi.logout(); } catch { /* cookie всё равно перестанет действовать по сроку */ }
   onSignedOut();
@@ -622,17 +649,21 @@ async function logout() {
 async function bootstrap() {
   initTheme([...document.querySelectorAll('[data-theme-toggle]')]);
   initTabs($('#authTabs'));
-  initDashTabs();
+  initDashNav();
   initAuthForms();
   initProfile();
   initSettings();
   // Покупка/продление абонемента и запись на занятия
-  shopCtl = initShop({ root: $('#shopRoot'), getUser: () => user, refreshUser, goto: gotoTab });
-  bookingCtl = initBooking({ root: $('#scheduleRoot'), goto: gotoTab });
+  shopCtl = initShop({ root: $('#shopRoot'), getUser: () => user, refreshUser, goto });
+  bookingCtl = initBooking({ root: $('#scheduleRoot'), goto });
+
   $('#logoutBtn').addEventListener('click', logout);
   $('#logoutTop').addEventListener('click', logout);
 
   try {
+    // Сначала тихая проверка сессии (всегда 200): 401 «нет сессии» не должен шуметь в консоли
+    const { authenticated } = await accountApi.session();
+    if (!authenticated) throw Object.assign(new Error('Гость'), { status: 401 });
     const { user: me } = await accountApi.me();
     onSignedIn(me);
   } catch (error) {

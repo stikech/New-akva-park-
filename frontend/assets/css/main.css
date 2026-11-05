@@ -2,14 +2,14 @@
    Точка входа стилей. Порядок важен: токены → база → каркас → компоненты → движение → секции. */
 
 @import url("tokens.css");
-@import url("base.css?v=3");
-@import url("layout.css?v=3");
+@import url("base.css?v=4");
+@import url("layout.css?v=4");
 @import url("components.css?v=3");
 @import url("motion.css");
 
 @import url("sections/hero.css?v=2");
 @import url("sections/slides.css?v=2");
-@import url("sections/prices.css?v=3");
+@import url("sections/prices.css?v=4");
 @import url("sections/rules.css?v=3");
 @import url("sections/fitness.css?v=2");
 @import url("sections/classes.css?v=2");
