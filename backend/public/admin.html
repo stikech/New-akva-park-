@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Админка · Нептун</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script type="module" src="/admin/admin.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top__inner">
+      <a class="brand" href="/" title="На сайт">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M2 20c4 0 4-3 7-3s3 3 7 3 4-3 7-3 3 3 7 3M2 26c4 0 4-3 7-3s3 3 7 3 4-3 7-3 3 3 7 3M16 4v11M10 7l6-3 6 3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Нептун <small>админка</small></span>
+      </a>
+      <button class="ghost" id="logout" type="button" hidden>Выйти</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card login" id="loginView" hidden>
+      <h1>Вход</h1>
+      <p class="muted">Введите токен администратора — значение переменной <code>ADMIN_TOKEN</code> на сервере.</p>
+      <form id="loginForm" autocomplete="off">
+        <label for="token">Токен</label>
+        <input id="token" name="token" type="password" required autocomplete="current-password">
+        <p class="error" id="loginError" role="alert"></p>
+        <button class="btn" type="submit">Войти</button>
+      </form>
+    </section>
+
+    <nav class="switch" id="switch" hidden aria-label="Разделы админки">
+      <button type="button" data-view="list" aria-pressed="true">Отзывы</button>
+      <button type="button" data-view="users" aria-pressed="false">Клиенты и абонементы</button>
+    </nav>
+
+    <section id="listView" hidden>
+      <div class="head">
+        <div>
+          <h1>Отзывы</h1>
+          <p class="muted" id="summary">Загружаем…</p>
+        </div>
+        <div class="tools">
+          <input id="search" type="search" placeholder="Поиск по имени, почте, тексту" aria-label="Поиск">
+          <button class="ghost" id="refresh" type="button">Обновить</button>
+          <button class="btn" id="exportCsv" type="button">Скачать CSV</button>
+        </div>
+      </div>
+      <p class="error" id="listError" role="alert"></p>
+      <ol class="feed" id="feed" aria-live="polite"></ol>
+      <div class="empty card" id="empty" hidden>
+        <p><strong>Пока пусто.</strong></p>
+        <p class="muted">Отзывы с формы на сайте появятся здесь.</p>
+      </div>
+    </section>
+    <section id="usersView" hidden>
+      <div class="head">
+        <div>
+          <h1>Клиенты</h1>
+          <p class="muted" id="usersSummary">Загружаем…</p>
+        </div>
+        <div class="tools">
+          <input id="userSearch" type="search" placeholder="Имя, почта или телефон" aria-label="Поиск клиента">
+          <button class="ghost" id="usersRefresh" type="button">Обновить</button>
+        </div>
+      </div>
+      <p class="error" id="usersError" role="alert"></p>
+      <ol class="feed" id="users" aria-live="polite"></ol>
+      <div class="empty card" id="usersEmpty" hidden>
+        <p><strong>Клиентов пока нет.</strong></p>
+        <p class="muted">Они появятся после регистрации в личном кабинете на сайте (/account).</p>
+      </div>
+    </section>
+  </main>
+
+  <template id="userTpl">
+    <li class="card item user">
+      <div class="item__meta">
+        <span class="avatar" aria-hidden="true"></span>
+        <div>
+          <strong class="item__name"></strong>
+          <span class="user__contacts muted"></span>
+        </div>
+        <span class="pill"></span>
+      </div>
+      <p class="user__plan"></p>
+      <div class="user__actions">
+        <button class="btn" type="button" data-act="visit">Отметить посещение</button>
+        <button class="ghost" type="button" data-act="issue">Оформить абонемент</button>
+        <button class="ghost danger-text" type="button" data-act="remove">Снять абонемент</button>
+      </div>
+      <form class="issue" hidden>
+        <label>Тариф
+          <select name="planId" required></select>
+        </label>
+        <label>Начало
+          <input name="startsAt" type="date" required>
+        </label>
+        <label>Окончание <small class="muted">— пусто = без срока</small>
+          <input name="endsAt" type="date">
+        </label>
+        <div class="issue__actions">
+          <button class="btn" type="submit">Сохранить</button>
+          <button class="ghost" type="button" data-act="cancel">Отмена</button>
+        </div>
+      </form>
+      <p class="error user__error" role="alert"></p>
+    </li>
+  </template>
+
+  <template id="itemTpl">
+    <li class="card item">
+      <div class="item__meta">
+        <span class="avatar" aria-hidden="true"></span>
+        <div>
+          <strong class="item__name"></strong>
+          <a class="item__email"></a>
+        </div>
+        <time class="item__date"></time>
+      </div>
+      <p class="item__text"></p>
+    </li>
+  </template>
+</body>
+</html>

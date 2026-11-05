@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data (отзывы)
+backend/data/
+
+# Build
+dist/
+build/
+coverage/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

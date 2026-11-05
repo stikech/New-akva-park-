@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Аквапарк Нептун</title>
+  <meta name="description" content="Крытый аквапарк «Нептун» в Петропавловске: горки, бассейн 25 м, хамам, сауны, фитнес-клуб. Работаем круглый год.">
+  <meta name="theme-color" content="#FFFFFF">
+  <script src="assets/js/theme-boot.js?v=1"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="assets/css/main.css?v=4">
+
+  <script type="module" src="assets/js/main.js?v=4"></script>
+</head>
+<body>
+
+<a class="skip" href="#top">Перейти к содержимому</a>
+
+<header>
+  <div class="wrap bar">
+    <a class="logo" href="#top" aria-label="Нептун, на главную">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#1AA3C8"/>
+        <path d="M5 19c3-2 5-2 8 0s5 2 8 0 5-2 6-1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16 6v9M12 8v5M20 8v5" stroke="#FFC83A" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      Нептун
+    </a>
+
+    <nav class="main" aria-label="Основное меню">
+      <a href="#slides" data-i18n="nSlides">Горки</a>
+      <a href="#prices" data-i18n="nPrices">Цены</a>
+      <a href="#rules" data-i18n="nRules">Правила</a>
+      <a href="#fitness" data-i18n="nFitness">Фитнес</a>
+      <a href="#classes" data-i18n="nClasses">Занятия</a>
+      <a href="#spa" data-i18n="nSpa">SPA</a>
+      <a href="#pool" data-i18n="nPool">Бассейн и кафе</a>
+      <a href="#contacts" data-i18n="nContacts">Контакты</a>
+    </nav>
+
+    <a class="account-link" href="/account" data-account-link>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+      <span data-account-label>Войти</span>
+    </a>
+
+    <div class="lang" role="group" aria-label="Язык">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="kz" aria-pressed="false">KZ</button>
+    </div>
+
+    <button class="theme-btn" type="button" data-theme-toggle aria-pressed="false" aria-label="Сменить тему" data-i18n-aria="themeToggle">
+      <svg class="theme-btn__icon theme-btn__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></svg>
+      <svg class="theme-btn__icon theme-btn__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+    </button>
+
+    <button class="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Меню">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+    </button>
+  </div>
+
+  <nav class="drawer" id="drawer" aria-label="Мобильное меню">
+    <a href="#slides" data-i18n="nSlides">Горки</a>
+    <a href="#prices" data-i18n="nPrices">Цены</a>
+    <a href="#rules" data-i18n="nRules">Правила</a>
+    <a href="#fitness" data-i18n="nFitness">Фитнес</a>
+    <a href="#classes" data-i18n="nClasses">Занятия</a>
+    <a href="#spa" data-i18n="nSpa">SPA</a>
+    <a href="#pool" data-i18n="nPool">Бассейн и кафе</a>
+    <a href="#contacts" data-i18n="nContacts">Контакты</a>
+    <a href="/account" data-account-link><span data-account-label="long">Личный кабинет</span></a>
+
+    <!-- Второй переключатель для очень узких экранов: в шапке места нет.
+         i18n синхронизирует оба набора кнопок data-lang. -->
+    <div class="lang lang--menu" role="group" aria-label="Язык">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="kz" aria-pressed="false">KZ</button>
+    </div>
+  </nav>
+</header>
+
+<main id="top" tabindex="-1">
+
+  <!-- ===== Hero ===== -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <span class="status" role="status">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Проверяем расписание…</span>
+      </span>
+
+      <h1 id="hero-title" class="temps">
+        <span class="cold">
+          <small data-i18n="outside">Сейчас в Петропавловске</small>
+          <span id="outsideTemp">Зима</span>
+        </span>
+        <span class="warm" data-i18n="inside">Внутри лето</span>
+      </h1>
+
+      <p class="sub" data-i18n="heroSub">Крытый аквапарк в центре города: четыре горки со стартом на 22 метрах, детская зона, хамам, сауны и бассейн 25 метров. Открыты в любую погоду.</p>
+
+      <div class="cta">
+        <a class="btn primary" href="#prices" data-i18n="ctaCalc">Рассчитать стоимость</a>
+        <a class="btn ghost" href="tel:+77152336141" data-i18n="ctaCall">Позвонить</a>
+      </div>
+    </div>
+
+    <div class="waves" aria-hidden="true">
+      <svg class="w2" viewBox="0 0 2880 120" preserveAspectRatio="none"><path fill="#1AA3C8" d="M0 60c240-40 480-40 720 0s480 40 720 0 480-40 720 0 480 40 720 0v60H0z"/></svg>
+      <svg class="w1" viewBox="0 0 2880 120" preserveAspectRatio="none"><path fill="var(--snow)" d="M0 80c240-30 480-30 720 0s480 30 720 0 480-30 720 0 480 30 720 0v40H0z"/></svg>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="facts">
+      <div class="fact"><b>22 м</b><span>высота старта взрослых горок</span></div>
+      <div class="fact"><b>4 + 3</b><span>взрослые горки и детские аттракционы WhiteWater</span></div>
+      <div class="fact"><b>4</b><span>джакузи и 10 гидромассажных установок</span></div>
+      <div class="fact"><b>40 см</b><span>глубина бассейна в детской зоне</span></div>
+    </div>
+  </div>
+
+  <!-- ===== Горки ===== -->
+  <section id="slides" aria-labelledby="slides-title">
+    <div class="wrap">
+      <div class="head-row">
+        <div>
+          <h2 id="slides-title" data-i18n="slidesTitle">Четыре горки высотой 22 метра</h2>
+          <p class="lead">Часть трасс выходит сквозь крышу наружу и возвращается обратно в зал. Укажите рост — покажем, куда можно.</p>
+        </div>
+        <div class="height">
+          <label for="h">Рост катающегося <output id="hOut" for="h">130 см</output></label>
+          <input id="h" type="range" min="90" max="200" step="1" value="130">
+          <p>Максимальный вес на всех горках — 120 кг, спуск по одному.</p>
+        </div>
+      </div>
+
+      <div class="slides rail-mobile" id="slideList"><!-- рендерит modules/slides.js --></div>
+
+      <p class="kids-note">Для детей ниже 120 см — отдельная зона с тремя детскими аттракционами и бассейном глубиной 40 см.</p>
+    </div>
+  </section>
+
+  <!-- ===== Цены ===== -->
+  <section id="prices" class="prices" aria-labelledby="prices-title">
+    <div class="wrap">
+      <h2 id="prices-title" data-i18n="pricesTitle">Сколько стоит</h2>
+      <p class="lead">Время считается по браслету: от выдачи на входе до сдачи на кассе выхода.</p>
+
+      <div class="tabs" id="priceTabs" role="tablist" aria-label="Тарифы">
+        <button role="tab" id="tab-park" aria-selected="true" aria-controls="panel-park" type="button">Аквапарк</button>
+        <button role="tab" id="tab-pool" aria-selected="false" aria-controls="panel-pool" type="button">Плавательный бассейн</button>
+      </div>
+
+      <div id="panel-park" role="tabpanel" aria-labelledby="tab-park" class="price-grid">
+        <div class="table-card">
+          <div class="scroll-x">
+            <table>
+              <thead><tr><th>Билет</th><th>Будни, 2 часа</th><th>Будни, без лимита</th><th>Выходные, 2 часа</th><th>Выходные, без лимита</th></tr></thead>
+              <tbody id="parkRows"></tbody>
+            </table>
+          </div>
+          <p class="note" id="parkNote"></p>
+        </div>
+
+        <div class="calc" id="calculator" aria-live="polite">
+          <h3>Калькулятор визита</h3>
+          <div class="row">
+            <span>Взрослые</span>
+            <div class="stepper">
+              <button type="button" data-guest="adult" data-step="-1" aria-label="Меньше взрослых">−</button>
+              <output data-count="adult">2</output>
+              <button type="button" data-guest="adult" data-step="1" aria-label="Больше взрослых">+</button>
+            </div>
+          </div>
+          <div class="row">
+            <span>Дети до 14 лет</span>
+            <div class="stepper">
+              <button type="button" data-guest="child" data-step="-1" aria-label="Меньше детей">−</button>
+              <output data-count="child">1</output>
+              <button type="button" data-guest="child" data-step="1" aria-label="Больше детей">+</button>
+            </div>
+          </div>
+          <div class="row">
+            <span>День</span>
+            <div class="seg" data-group="day">
+              <button type="button" data-value="weekday" aria-pressed="true">Будни</button>
+              <button type="button" data-value="weekend" aria-pressed="false">Выходные</button>
+            </div>
+          </div>
+          <div class="row">
+            <span>Время</span>
+            <div class="seg" data-group="duration">
+              <button type="button" data-value="h2" aria-pressed="false">2 часа</button>
+              <button type="button" data-value="unl" aria-pressed="true">Без лимита</button>
+            </div>
+          </div>
+          <div class="total"><span>Итого</span><b data-total>—</b></div>
+          <p class="note">Ориентировочно. Окончательную сумму считает касса.</p>
+        </div>
+      </div>
+
+      <div id="panel-pool" role="tabpanel" aria-labelledby="tab-pool" class="price-grid" hidden>
+        <div class="table-card">
+          <div class="scroll-x">
+            <table>
+              <thead><tr><th>Билет</th><th>1 час</th><th>2 часа</th><th>3 часа</th><th>12 посещений, 2 месяца</th></tr></thead>
+              <tbody id="poolRows"></tbody>
+            </table>
+          </div>
+          <p class="note">Бассейн 25 м работает ежедневно с 08:00 до 23:00.</p>
+        </div>
+        <div class="calc">
+          <h3>Абонемент выгоднее</h3>
+          <p class="lead" id="poolSaving"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Правила тарификации ===== -->
+  <section id="rules" aria-labelledby="rules-title">
+    <div class="wrap">
+      <h2 id="rules-title" data-i18n="rulesTitle">Как считается время</h2>
+      <div class="timeline">
+        <div class="step"><h3>Браслет на входе</h3><p>Оплаченное время начинается с момента получения электронного браслета.</p></div>
+        <div class="step"><h3>15 минут на раздевалку</h3><p>Время на переодевание заложено в правилах.</p></div>
+        <div class="step"><h3>10 минут в подарок</h3><p>Первые 10 минут сверх оплаченного времени бесплатны.</p></div>
+        <div class="step"><h3>Доплата на выходе</h3><p>Дальше — за каждые полные и неполные 5 минут по тарифу. Неиспользованное время не возвращается.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Фитнес-клуб ===== -->
+  <section id="fitness" class="fitness" aria-labelledby="fitness-title">
+    <div class="wrap">
+      <div class="head-row">
+        <div>
+          <h2 id="fitness-title" data-i18n="fitTitle">Фитнес-клуб «Нептун»</h2>
+          <p class="lead">Тренажёрный зал, кроссфит, единоборства, танцы и групповые программы — в одном здании с аквапарком.</p>
+        </div>
+        <div class="fitness-meta">
+          <p id="fitnessHours"></p>
+          <div class="socials" id="fitnessSocials"></div>
+        </div>
+      </div>
+
+      <ul class="directions" id="fitnessDirections" aria-label="Направления"></ul>
+
+      <h3 class="sub-title" data-i18n="cardsTitle">Клубные карты</h3>
+      <div class="club-cards rail-mobile" id="clubCards"><!-- рендерит modules/fitness.js --></div>
+
+      <h3 class="sub-title" data-i18n="teamTitle">Команда</h3>
+      <div class="tabs tabs--scroll" id="teamTabs" role="tablist" aria-label="Тренеры по направлениям"></div>
+      <div id="teamPanels"><!-- рендерит modules/team.js --></div>
+    </div>
+  </section>
+
+  <!-- ===== Занятия: расписание и запись в кабинете ===== -->
+  <section id="classes" aria-labelledby="classes-title">
+    <div class="wrap">
+      <div class="head-row">
+        <div>
+          <h2 id="classes-title" data-i18n="classesTitle">Расписание занятий</h2>
+          <p class="lead" data-i18n="classesLead">Плавание, аквааэробика, кроссфит, единоборства, групповые и детские программы. Свободные места, ваша запись и отмена не позднее, чем за час до занятия, — в личном кабинете.</p>
+        </div>
+        <a class="btn primary classes-cta" href="/account#schedule"><span data-i18n="classesCta">Записаться в кабинете</span></a>
+      </div>
+
+      <div class="classes-preview" id="classesPreview" aria-label="Занятия недели"><!-- рендерит modules/schedule-preview.js --></div>
+
+      <p class="note" data-i18n="classesNote">Расписание примерное. Точные дни, время и свободные места — в личном кабинете; изменения уточняйте на ресепшене.</p>
+    </div>
+  </section>
+
+  <!-- ===== SPA ===== -->
+  <section id="spa" class="spa" aria-labelledby="spa-title">
+    <div class="wrap">
+      <h2 id="spa-title" data-i18n="spaTitle">Пар, вода и тишина</h2>
+      <p class="lead">Банный комплекс и оздоровительные услуги — в том же здании, что и горки.</p>
+      <div class="spa-grid">
+        <div class="spa-item big"><h3>Три бани</h3><p>Турецкий хамам, русская баня и финская сауна. Можно пройти по кругу между заездами на горках.</p></div>
+        <div class="spa-item"><h3>Джакузи</h3><p>Четыре ванны и десять гидромассажных установок.</p></div>
+        <div class="spa-item"><h3>Массаж</h3><p>Десять видов массажа у квалифицированных массажистов.</p></div>
+        <div class="spa-item"><h3>Прессотерапия</h3><p>Сеанс 30 минут.</p><span class="price" id="pressPrice"></span></div>
+        <div class="spa-item"><h3>Солярий</h3><p>Четыре турбо-солярия — для ровного загара в сибирскую зиму.</p></div>
+      </div>
+
+      <div class="spa-prices">
+        <div class="spa-panel">
+          <h3 data-i18n="massageTitle">Массаж</h3>
+          <p class="spa-meta"><span id="massageHours"></span>. Запись по телефону <span id="spaBooking"></span></p>
+          <ul class="price-list" id="massageList"></ul>
+        </div>
+        <div class="spa-panel">
+          <h3 data-i18n="solariumTitle">Солярий</h3>
+          <p class="spa-meta" id="solariumNote"></p>
+          <div class="price-groups" id="solariumGroups"></div>
+          <h3 class="spa-panel__next" data-i18n="pressTitle">Прессотерапия</h3>
+          <ul class="price-list" id="pressList"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Бассейн и кафе ===== -->
+  <section id="pool" aria-labelledby="pool-title">
+    <div class="wrap split">
+      <div class="panel">
+        <h2 id="pool-title" class="panel__title" data-i18n="poolTitle">Плавательный бассейн</h2>
+        <div class="lanes" role="img" aria-label="Схема дорожек бассейна длиной 25 метров"></div>
+        <div class="specs">
+          <span class="chip">25 м</span>
+          <span class="chip">глубина 1,4–2 м</span>
+          <span class="chip">08:00–23:00 ежедневно</span>
+        </div>
+        <ul>
+          <li>Групповые занятия для детей</li>
+          <li>Индивидуальные занятия для детей с 5 лет</li>
+          <li>Персональные тренировки для взрослых</li>
+          <li>Аквааэробика</li>
+          <li>Плавательный клуб «Нептун-Shark» — тренировки с тренером</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2 class="panel__title" data-i18n="cafeTitle">Кафе и фитнес-бар</h2>
+        <p class="lead">Перекусить можно, не выходя из комплекса.</p>
+        <ul>
+          <li>Кафе «Камбуз» — на первом этаже аквапарка</li>
+          <li>Фитнес-бар — при фитнес-клубе</li>
+        </ul>
+        <p class="note">Меню и цены кафе уточняются.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Контакты ===== -->
+  <section id="contacts" class="section--flush-top" aria-labelledby="contacts-title">
+    <div class="wrap">
+      <h2 id="contacts-title" data-i18n="contactsTitle">Как нас найти</h2>
+      <div class="contacts">
+        <div class="panel">
+          <h3>Часы работы аквапарка</h3>
+          <table class="hours-table"><tbody id="hoursRows"></tbody></table>
+          <p class="note">Кассы могут прекращать продажу билетов за час до закрытия.</p>
+        </div>
+        <div class="panel addr">
+          <div>
+            <h3>Адрес</h3>
+            <p class="addr__text">Петропавловск, ул. Юрия Медведева, 41 — центр города</p>
+          </div>
+          <div>
+            <h3>Телефоны</h3>
+            <a class="tel" href="tel:+77152336141">+7 7152 33-61-41</a><br>
+            <a href="tel:+77152330872">+7 7152 33-08-72</a>
+          </div>
+          <a class="btn primary" href="https://2gis.kz/petropavlovsk/firm/70000001038882256" target="_blank" rel="noopener" data-i18n="ctaRoute">Построить маршрут в 2ГИС</a>
+        </div>
+      </div>
+
+      <form class="panel feedback" id="feedbackForm" novalidate aria-labelledby="feedback-title">
+        <div class="feedback__intro">
+          <h3 id="feedback-title" data-i18n="feedbackTitle">Оставить отзыв</h3>
+          <p class="lead">Расскажите, что понравилось и что улучшить. Администрация читает каждый отзыв.</p>
+        </div>
+        <div class="feedback__fields">
+          <div class="field">
+            <label for="fb-name">Имя</label>
+            <input id="fb-name" name="name" type="text" autocomplete="name" required>
+            <span class="field__error" data-error="name"></span>
+          </div>
+          <div class="field">
+            <label for="fb-email">Почта <small>— если ждёте ответа</small></label>
+            <input id="fb-email" name="email" type="email" autocomplete="email" inputmode="email">
+            <span class="field__error" data-error="email"></span>
+          </div>
+          <div class="field field--wide">
+            <label for="fb-message">Отзыв</label>
+            <textarea id="fb-message" name="message" rows="4" required></textarea>
+            <span class="field__error" data-error="message"></span>
+          </div>
+          <!-- honeypot: скрыт от людей, боты его заполняют -->
+          <div class="field--hp" aria-hidden="true">
+            <label for="fb-website">Сайт</label>
+            <input id="fb-website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="feedback__actions">
+            <button class="btn primary" type="submit" data-i18n="ctaSend">Отправить отзыв</button>
+            <p class="feedback__status" data-status role="status"></p>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Аквапарк «Нептун», Петропавловск</span>
+    <span>Цены — по прейскуранту akvapark.kz. Концепт редизайна.</span>
+  </div>
+</footer>
+
+</body>
+</html>

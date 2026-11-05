@@ -1,0 +1,25 @@
+/* Бассейн и кафе: две панели рядом. */
+
+.split { display: grid; gap: 24px; }
+@media (min-width: 900px) { .split { grid-template-columns: 1fr 1fr; } }
+.split > * { min-width: 0; }
+
+/* Схема дорожек бассейна */
+.lanes {
+  position: relative;
+  height: 110px;
+  margin: 20px 0;
+  border-radius: 16px;
+  background: repeating-linear-gradient(180deg, var(--water) 0 26px, #fff 26px 28px);
+  overflow: hidden;
+}
+.lanes::after {
+  content: "25 м";
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  color: #fff;
+  font: 700 22px "Unbounded";
+}
+
+.specs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }

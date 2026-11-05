@@ -1,0 +1,132 @@
+/* Шапка, навигация, мобильное меню, подвал: минималистичный белый каркас. */
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--snow) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.bar { display: flex; align-items: center; gap: 18px; height: 64px; }
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 900 20px/1 "Unbounded";
+  text-decoration: none;
+}
+.logo svg { width: 30px; height: 30px; }
+
+nav.main { display: none; gap: 24px; margin-left: auto; }
+nav.main a {
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--muted);
+  transition: color .2s ease;
+}
+nav.main a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--water); }
+
+.account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: box-shadow .2s ease, background-color .2s ease;
+}
+.account-link:hover { box-shadow: inset 0 0 0 1.5px var(--water); }
+.account-link[data-signed-in] { background: var(--deep); box-shadow: none; color: #fff; }
+
+.lang {
+  display: flex;
+  margin-left: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lang button {
+  padding: 6px 11px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 600 13px "Golos Text";
+  cursor: pointer;
+  transition: color .2s ease;
+}
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--deep); color: #fff; border-radius: 999px; }
+
+/* Кнопка темы: светлая/тёмная. Активной теме соответствует иконка «куда переключимся». */
+.theme-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .2s ease, transform .2s ease;
+}
+.theme-btn:hover { border-color: var(--water); transform: rotate(0); }
+.theme-btn:active { transform: scale(.92); }
+.theme-btn__icon { grid-area: 1 / 1; width: 19px; height: 19px; stroke-width: 1.8; transition: opacity .25s ease, transform .35s ease; }
+.theme-btn__icon--sun { opacity: 1; transform: none; }
+.theme-btn__icon--moon { opacity: 0; transform: rotate(-60deg) scale(.6); }
+:root[data-theme="dark"] .theme-btn__icon--sun { opacity: 0; transform: rotate(60deg) scale(.6); }
+:root[data-theme="dark"] .theme-btn__icon--moon { opacity: 1; transform: none; }
+
+/* На узких экранах: компактная шапка; языке — в мобильном меню, кнопка кабинета — иконкой */
+.lang--menu { display: none; }
+@media (max-width: 420px) {
+  .bar { gap: 8px; }
+  .logo { font-size: 17px; }
+  .logo svg { width: 26px; height: 26px; }
+  .account-link { padding: 7px; margin-left: auto; }
+  .account-link span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  header .bar .lang { display: none; }
+  .lang--menu { display: flex; align-self: flex-start; margin: 12px 2px 0; padding: 10px 12px 0; }
+  .lang--menu button { padding: 5px 10px; }
+  .theme-btn { width: 34px; height: 34px; flex: none; }
+}
+
+.burger { padding: 8px; border: 0; background: none; color: var(--ink); cursor: pointer; }
+
+.drawer {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px 20px;
+}
+.drawer.open { display: flex; }
+.drawer a {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+@media (min-width: 1000px) {
+  nav.main { display: flex; }
+  .account-link { margin-left: 16px; }
+  .lang { margin-left: 8px; }
+  .burger { display: none; }
+  .drawer { display: none !important; }
+}
+
+footer { padding: 36px 0; background: var(--deep); color: rgba(255, 255, 255, .72); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }

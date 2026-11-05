@@ -1,0 +1,158 @@
+/* Переиспользуемые компоненты: кнопки, панели, чипы, таблицы, вкладки, контролы. */
+
+/* Кнопки */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border: 0;
+  border-radius: 999px;
+  font: 600 16px "Golos Text";
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--deep); color: #fff; box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 14%, transparent); }
+.btn.primary:hover { background: color-mix(in srgb, var(--deep) 86%, var(--water)); }
+.btn.ghost { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--water); }
+
+/* Панель-карточка */
+.panel { padding: 28px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.panel ul { margin: 14px 0 0; padding-left: 20px; color: var(--muted); }
+.panel li { margin: 4px 0; }
+.panel__title { font-size: clamp(24px, 3vw, 34px); }
+
+/* Чипы */
+.chip { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
+
+/* Сноски */
+.note { margin-top: 14px; color: var(--muted); font-size: 13px; }
+
+/* Таблицы */
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 12px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; white-space: normal; }
+thead th { color: var(--muted); font-size: 13px; font-weight: 600; }
+tbody td { font-variant-numeric: tabular-nums; }
+.scroll-x { overflow-x: auto; }
+
+/* Вкладки */
+.tabs {
+  display: inline-flex;
+  margin-top: 28px;
+  padding: 4px;
+  background: var(--mist);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.tabs button {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: 600 15px "Golos Text";
+  cursor: pointer;
+  transition: color .2s ease, background-color .2s ease;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { background: var(--deep); color: #fff; box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 12%, transparent); }
+
+/* Вкладки, которые не помещаются в ширину, прокручиваются по горизонтали */
+.tabs--scroll { display: flex; max-width: 100%; margin-top: 0; overflow-x: auto; scrollbar-width: none; }
+.tabs--scroll::-webkit-scrollbar { display: none; }
+.tabs--scroll button { flex: none; white-space: nowrap; }
+.tab-count { margin-left: 6px; font-size: 12px; opacity: .7; }
+
+/* Лента карточек на телефоне: вместо длинного столбца — горизонтальная прокрутка пальцем.
+   Следующая карточка выглядывает справа — видно, что можно листать. */
+@media (max-width: 699px) {
+  .rail-mobile {
+    display: grid;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 84%;
+    gap: 12px;
+    margin-inline: -16px;
+    padding: 4px 16px 14px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+  }
+  .rail-mobile::-webkit-scrollbar { display: none; }
+  .rail-mobile > * { scroll-snap-align: start; min-width: 0; }
+}
+
+/* Прайс-лист: название (+ пояснение) слева, цена справа. Цвета наследуются от секции. */
+.price-list { margin: 0; padding: 0; list-style: none; }
+.price-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+}
+.price-list li:last-child { border-bottom: 0; }
+.price-list small { display: block; font-size: 13px; opacity: .7; }
+.price-list b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Поля формы */
+.field label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+.field label small { color: var(--muted); font-weight: 400; }
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--mist);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* меньше 16px — iOS зумит при фокусе */
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.field textarea { resize: vertical; }
+.field input:focus,
+.field textarea:focus { border-color: var(--water); background: var(--card); outline: none; }
+.field [aria-invalid="true"] { border-color: var(--error); }
+.field__error { display: block; min-height: 0; margin-top: 4px; color: var(--error); font-size: 13px; }
+.field__error:empty { display: none; }
+
+/* Степпер (+/−) */
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper button {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--mist);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .2s ease;
+}
+.stepper button:hover { border-color: var(--water); }
+.stepper output { min-width: 22px; text-align: center; font-weight: 600; }
+
+/* Сегментированный переключатель */
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button {
+  padding: 6px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: 500 14px "Golos Text";
+  cursor: pointer;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.seg button:hover { border-color: var(--water); }
+.seg button[aria-pressed="true"] { border-color: var(--water); background: var(--lagoon); color: var(--deep); }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: var(--sun); }

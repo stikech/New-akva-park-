@@ -1,0 +1,43 @@
+/* Горки: заголовок с фильтром роста, карточки трасс. */
+
+.head-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 24px; }
+
+.height {
+  min-width: min(100%, 340px);
+  padding: 18px 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.height label { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
+.height output { color: var(--water-ink); font: 700 18px "Unbounded"; }
+.height input { width: 100%; margin-top: 10px; accent-color: var(--water); }
+.height p { margin-top: 6px; color: var(--muted); font-size: 14px; }
+
+.slides { display: grid; gap: 16px; margin-top: 36px; }
+@media (min-width: 700px) { .slides { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .slides { grid-template-columns: repeat(4, 1fr); } }
+
+.slide {
+  --c: var(--water); /* цвет трассы задаётся из JS */
+  position: relative;
+  padding: 22px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: opacity .25s, filter .25s;
+}
+.slide::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--c); }
+.slide .tube { width: 100%; height: 84px; margin: 10px 0 14px; }
+.slide .tube path { stroke: var(--c); }
+.slide .lvl { color: var(--muted); font-size: 14px; }
+.slide dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 16px 0 0; font-size: 15px; }
+.slide dt { color: var(--muted); }
+.slide dd { margin: 0; font-weight: 600; text-align: right; }
+.slide .verdict { margin-top: 16px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--lagoon); font-size: 14px; font-weight: 600; }
+
+.slide.no { opacity: .45; filter: grayscale(.7); }
+.slide.no .verdict { background: #FFE3DF; color: #8A1E12; }
+
+.kids-note { margin-top: 20px; color: var(--muted); font-size: 15px; }

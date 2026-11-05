@@ -1,0 +1,18 @@
+/* ?v=4 — редизайн: светлая минималистичная тема + переключатель тёмной.
+   Точка входа стилей. Порядок важен: токены → база → каркас → компоненты → движение → секции. */
+
+@import url("tokens.css");
+@import url("base.css?v=3");
+@import url("layout.css?v=3");
+@import url("components.css?v=3");
+@import url("motion.css");
+
+@import url("sections/hero.css?v=2");
+@import url("sections/slides.css?v=2");
+@import url("sections/prices.css?v=3");
+@import url("sections/rules.css?v=3");
+@import url("sections/fitness.css?v=2");
+@import url("sections/classes.css?v=2");
+@import url("sections/spa.css?v=3");
+@import url("sections/pool-cafe.css?v=2");
+@import url("sections/contacts.css?v=2");

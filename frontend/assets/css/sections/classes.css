@@ -1,0 +1,43 @@
+/* Занятия: превью недели с главной страницы + CTA в кабинет. */
+
+.classes { background: var(--card); border-top: 1px solid var(--line); }
+.classes .head-row { align-items: end; }
+
+.classes-preview { display: grid; gap: 10px; margin-top: 28px; }
+@media (min-width: 700px) { .classes-preview { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1040px) { .classes-preview { grid-template-columns: repeat(3, 1fr); gap: 14px; } }
+
+.class-item {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  padding: 18px;
+  background: var(--snow);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.class-item__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.class-item__chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--water); }
+/* Категория подсвечивается цветом трасс/воды — те же токены, что на горках */
+.class-item--aqua .class-item__chip::before { background: var(--s-blue); }
+.class-item--fitness .class-item__chip::before { background: var(--s-green); }
+.class-item--combat .class-item__chip::before { background: var(--s-orange); }
+.class-item--group .class-item__chip::before, .class-item--kids .class-item__chip::before { background: var(--s-yellow); }
+
+.class-item h3 { margin: 0; font: 600 16px/1.4 "Golos Text"; max-width: 32ch; }
+.class-item__room { margin: 0; color: var(--muted); font-size: 13px; }
+.class-item__times { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 3px 12px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.class-item__times b { color: var(--ink); font-weight: 600; }
+
+.classes-cta { flex: none; }
+@media (max-width: 699px) { .classes-cta { width: 100%; } }

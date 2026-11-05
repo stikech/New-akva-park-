@@ -1,0 +1,32 @@
+/* SPA: тёмная секция с сеткой услуг. */
+
+.spa { background: var(--deep); color: #fff; }
+.spa .lead { color: rgba(255, 255, 255, .72); }
+
+.spa-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 36px; }
+@media (min-width: 700px) { .spa-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; } }
+@media (max-width: 699px) {
+  .spa-item { padding: 16px; }
+  .spa-item.big { grid-column: 1 / -1; }
+  .spa-item p { font-size: 14px; overflow-wrap: anywhere; hyphens: auto; }
+  .spa-item h3 { font-size: 17px; overflow-wrap: anywhere; }
+}
+
+.spa-item { padding: 22px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--r-lg); }
+.spa-item.big { background: linear-gradient(160deg, rgba(255, 200, 58, .18), transparent 70%); }
+@media (min-width: 700px) { .spa-item.big { grid-row: span 2; } }
+.spa-item p { margin-top: 8px; color: rgba(255, 255, 255, .72); font-size: 15px; }
+.spa-item .price { display: inline-block; margin-top: 14px; color: var(--sun); font-weight: 600; }
+
+/* Прайс массажа, солярия и прессотерапии */
+.spa-prices { display: grid; gap: 14px; margin-top: 14px; }
+@media (min-width: 900px) { .spa-prices { grid-template-columns: 1fr 1fr; } }
+
+.spa-panel { padding: clamp(18px, 4vw, 24px); border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--r-lg); }
+.spa-panel__next { margin-top: 28px; }
+.spa-meta { margin: 6px 0 14px; color: rgba(255, 255, 255, .72); font-size: 14px; }
+.spa-meta a { color: var(--sun); text-underline-offset: 3px; }
+
+.price-groups { display: grid; gap: 18px; }
+@media (min-width: 600px) { .price-groups { grid-template-columns: 1fr 1fr; } }
+.price-group h4 { margin: 0 0 4px; color: var(--sun); font: 600 15px "Golos Text"; }

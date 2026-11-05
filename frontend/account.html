@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#FFFFFF">
+  <title>Личный кабинет · Нептун</title>
+  <script src="/assets/js/theme-boot.js?v=1"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/assets/css/account.css?v=5">
+
+  <script type="module" src="/assets/js/account.js?v=5"></script>
+  <script src="/assets/js/account-fallback.js" defer></script>
+</head>
+<body class="acc-page">
+
+<a class="skip" href="#acc-main">Перейти к содержимому</a>
+
+<!-- Иконки: один раз, используются через <use href="#i-…"> -->
+<svg class="sprite" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M2.5 10h19M7 15h4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M12 3v7"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-shop" viewBox="0 0 24 24"><path d="M5 8h14l-1.2 12.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M8.5 10V6.5a3.5 3.5 0 0 1 7 0V10"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3.2 2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/></symbol>
+</svg>
+
+<header>
+  <div class="wrap bar acc-bar">
+    <a class="logo" href="/" aria-label="Нептун, на главную">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#1AA3C8"/>
+        <path d="M5 19c3-2 5-2 8 0s5 2 8 0 5-2 6-1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16 6v9M12 8v5M20 8v5" stroke="#FFC83A" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      Нептун
+    </a>
+    <span class="acc-bar__title">Личный кабинет</span>
+    <a class="acc-back" href="/"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span>На сайт</span></a>
+    <button class="theme-btn" type="button" data-theme-toggle aria-pressed="false" aria-label="Сменить тему">
+      <svg class="theme-btn__icon theme-btn__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></svg>
+      <svg class="theme-btn__icon theme-btn__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+    </button>
+    <button class="acc-logout acc-logout--top" id="logoutTop" type="button" hidden aria-label="Выйти">
+      <svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="acc-main" id="acc-main" tabindex="-1">
+
+  <!-- ===== Загрузка ===== -->
+  <div class="acc-loading" id="loadingView" role="status">
+    <span class="spinner" aria-hidden="true"></span> Загружаем кабинет…
+  </div>
+
+  <!-- ===== Вход / регистрация ===== -->
+  <section class="acc-auth wrap" id="authView" hidden aria-labelledby="auth-title">
+    <div class="acc-auth__intro">
+      <p class="eyebrow">Аквапарк и фитнес-клуб «Нептун»</p>
+      <h1 id="auth-title">Личный кабинет</h1>
+      <p class="lead">Ваш абонемент, остаток посещений, срок действия и личные данные — в одном месте.</p>
+      <ul class="acc-perks">
+        <li><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg>Купить или продлить абонемент картой — онлайн, без визита на кассу</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-cal"/></svg>Запись на занятия: бассейн, фитнес, единоборства — видно, кто и когда</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Сколько посещений осталось, до какого числа действует — и куда можно прийти</li>
+      </ul>
+    </div>
+
+    <div class="acc-auth__side">
+      <div class="panel acc-auth__card">
+        <div class="tabs acc-auth__tabs" id="authTabs" role="tablist" aria-label="Вход или регистрация">
+          <button role="tab" id="tab-login" aria-controls="panel-login" aria-selected="true" type="button">Вход</button>
+          <button role="tab" id="tab-register" aria-controls="panel-register" aria-selected="false" type="button">Регистрация</button>
+        </div>
+
+        <form id="panel-login" role="tabpanel" aria-labelledby="tab-login" class="acc-form" novalidate>
+          <div class="field">
+            <label for="login-email">Почта</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" inputmode="email" required>
+          </div>
+          <div class="field">
+            <label for="login-password">Пароль</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <p class="acc-status" data-status role="alert"></p>
+          <button class="btn primary btn--block" type="submit">Войти</button>
+          <p class="note">Забыли пароль? Позвоните на ресепшен: <a href="tel:+77152336141">+7 7152 33-61-41</a> — администратор поможет восстановить доступ.</p>
+        </form>
+
+        <form id="panel-register" role="tabpanel" aria-labelledby="tab-register" class="acc-form" novalidate hidden>
+          <div class="field">
+            <label for="reg-name">Имя</label>
+            <input id="reg-name" name="firstName" type="text" autocomplete="given-name" maxlength="60" required>
+            <span class="field__error" data-error="firstName"></span>
+          </div>
+          <div class="field">
+            <label for="reg-email">Почта</label>
+            <input id="reg-email" name="email" type="email" autocomplete="email" inputmode="email" required>
+            <span class="field__error" data-error="email"></span>
+          </div>
+          <div class="field">
+            <label for="reg-password">Пароль <small>— не короче 8 символов</small></label>
+            <input id="reg-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+            <span class="field__error" data-error="password"></span>
+          </div>
+          <label class="acc-check">
+            <input name="consent" type="checkbox" required>
+            <span>Согласен(на) на обработку персональных данных для ведения личного кабинета и абонемента</span>
+          </label>
+          <span class="field__error" data-error="consent"></span>
+          <p class="acc-status" data-status role="alert"></p>
+          <button class="btn primary btn--block" type="submit">Создать аккаунт</button>
+        </form>
+      </div>
+
+      <div class="panel demo-box" id="demoBox" hidden>
+        <h2 class="acc-h3">Посмотреть на примере</h2>
+        <p class="note">Готовые аккаунты — войдите в один клик.</p>
+        <div class="demo-list" id="demoList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Дашборд ===== -->
+  <div class="dash" id="accountView" hidden>
+    <aside class="dash-side" aria-label="Меню кабинета">
+      <div class="dash-user">
+        <span class="acc-avatar" data-avatar aria-hidden="true"></span>
+        <div class="dash-user__text">
+          <strong data-fullname></strong>
+          <span data-email></span>
+        </div>
+      </div>
+      <span class="badge badge--light" data-status-pill></span>
+
+      <nav class="dash-nav" id="dashNav" role="tablist" aria-label="Разделы кабинета" aria-orientation="vertical">
+        <button role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" type="button">
+          <svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Обзор</span>
+        </button>
+        <button role="tab" id="tab-profile" aria-controls="panel-profile" aria-selected="false" type="button">
+          <svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span>Мой профиль</span>
+        </button>
+        <button role="tab" id="tab-membership" aria-controls="panel-membership" aria-selected="false" type="button">
+          <svg class="ic" aria-hidden="true"><use href="#i-card"/></svg><span>Абонемент</span>
+        </button>
+        <button role="tab" id="tab-shop" aria-controls="panel-shop" aria-selected="false" type="button">
+          <svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg><span>Магазин</span>
+        </button>
+        <button role="tab" id="tab-schedule" aria-controls="panel-schedule" aria-selected="false" type="button">
+          <svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span>Расписание</span>
+        </button>
+        <button role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" type="button">
+          <svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span>Настройки</span>
+        </button>
+      </nav>
+
+      <div class="dash-side__foot">
+        <a class="dash-link" href="/"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>На сайт</a>
+        <button class="dash-link" id="logoutBtn" type="button"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg>Выйти</button>
+      </div>
+    </aside>
+
+    <div class="dash-main">
+      <p class="demo-note" id="demoNote" hidden>
+        <b>Демо-аккаунт.</b> Можно смотреть и править профиль; смена пароля и удаление отключены. Данные сбрасываются при перезапуске сервера.
+      </p>
+
+      <!-- Обзор -->
+      <section id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" class="dash-panel">
+        <div class="welcome">
+          <div>
+            <p class="eyebrow eyebrow--light" id="todayLabel"></p>
+            <h1 id="hello">Здравствуйте!</h1>
+            <p class="welcome__sub" id="helloSub"></p>
+          </div>
+          <span class="acc-avatar acc-avatar--xl" data-avatar aria-hidden="true"></span>
+        </div>
+
+        <div class="kpis" id="kpis"><!-- account.js --></div>
+
+        <div class="overview-grid">
+          <div class="ov-pass" id="overviewPass"></div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2 class="acc-h3">Последние посещения</h2>
+              <a href="#membership" data-goto="tab-membership" class="more">Все<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            </div>
+            <ul class="visits" id="overviewVisits"></ul>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2 class="acc-h3">Профиль</h2>
+              <a href="#profile" data-goto="tab-profile" class="more">Открыть<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            </div>
+            <div id="overviewProfile"></div>
+          </div>
+          <div class="panel quick">
+            <h2 class="acc-h3">Быстрые действия</h2>
+            <a class="quick__item" href="#schedule" data-goto="tab-schedule"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span>Записаться на занятие</span></a>
+            <a class="quick__item" href="#shop" data-goto="tab-shop"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg><span>Купить или продлить абонемент</span></a>
+            <a class="quick__item" href="/#prices"><svg class="ic" aria-hidden="true"><use href="#i-wave"/></svg><span>Цены аквапарка и бассейна</span></a>
+            <a class="quick__item" href="tel:+77152336141"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span>Позвонить на ресепшен</span></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Мой профиль -->
+      <section id="panel-profile" role="tabpanel" aria-labelledby="tab-profile" class="dash-panel" hidden>
+        <div class="dash-head">
+          <div>
+            <h2 class="acc-h2">Мой профиль</h2>
+            <p class="muted">Эти данные видите вы и администрация «Нептуна».</p>
+          </div>
+        </div>
+
+        <div class="panel profile-card" id="profileView">
+          <div class="profile-card__top">
+            <span class="acc-avatar acc-avatar--xl" data-avatar aria-hidden="true"></span>
+            <div class="profile-card__name">
+              <strong data-fullname></strong>
+              <span class="muted" id="memberSince"></span>
+            </div>
+            <button class="btn outline" id="editProfileBtn" type="button"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg>Редактировать</button>
+          </div>
+          <div class="progress-row" id="completeness"></div>
+          <dl class="info-grid" id="profileInfo"><!-- account.js --></dl>
+        </div>
+
+        <form class="panel acc-grid-form" id="profileForm" novalidate hidden>
+          <div class="acc-grid-form__head">
+            <h3 class="acc-h3">Редактирование профиля</h3>
+            <p class="note">Нужны администратору, чтобы оформить абонемент на вас. Заполните хотя бы телефон.</p>
+          </div>
+          <div class="field">
+            <label for="pf-first">Имя</label>
+            <input id="pf-first" name="firstName" type="text" autocomplete="given-name" maxlength="60" required>
+            <span class="field__error" data-error="firstName"></span>
+          </div>
+          <div class="field">
+            <label for="pf-last">Фамилия</label>
+            <input id="pf-last" name="lastName" type="text" autocomplete="family-name" maxlength="60">
+            <span class="field__error" data-error="lastName"></span>
+          </div>
+          <div class="field">
+            <label for="pf-phone">Телефон</label>
+            <input id="pf-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+7 7__ ___-__-__">
+            <span class="field__error" data-error="phone"></span>
+          </div>
+          <div class="field">
+            <label for="pf-birth">Дата рождения</label>
+            <input id="pf-birth" name="birthDate" type="date" autocomplete="bday" min="1900-01-01">
+            <span class="field__error" data-error="birthDate"></span>
+          </div>
+          <div class="field field--wide">
+            <label for="pf-email">Почта <small>— логин, не меняется</small></label>
+            <input id="pf-email" type="email" readonly>
+          </div>
+          <div class="acc-actions">
+            <button class="btn primary" type="submit">Сохранить</button>
+            <button class="btn outline" type="button" id="cancelEditBtn">Отмена</button>
+            <p class="acc-status" data-status role="status"></p>
+          </div>
+        </form>
+        <p class="acc-status acc-status--float" id="profileSaved" role="status"></p>
+      </section>
+
+      <!-- Абонемент -->
+      <section id="panel-membership" role="tabpanel" aria-labelledby="tab-membership" class="dash-panel" hidden>
+        <div class="dash-head">
+          <div>
+            <h2 class="acc-h2">Абонемент</h2>
+            <p class="muted">Посещения отмечает администратор на входе. Записаться на занятие и продлить можно прямо здесь.</p>
+          </div>
+        </div>
+        <div id="membershipBox"><!-- account.js --></div>
+      </section>
+
+      <!-- Магазин: покупка и продление -->
+      <section id="panel-shop" role="tabpanel" aria-labelledby="tab-shop" class="dash-panel" hidden>
+        <div class="dash-head">
+          <div>
+            <h2 class="acc-h2">Магазин</h2>
+            <p class="muted">Оформление, продление и оплата абонементов картой — без очереди на кассе.</p>
+          </div>
+        </div>
+        <div id="shopRoot" class="shop-root"><!-- modules/shop.js --></div>
+      </section>
+
+      <!-- Расписание и запись -->
+      <section id="panel-schedule" role="tabpanel" aria-labelledby="tab-schedule" class="dash-panel" hidden>
+        <div class="dash-head">
+          <div>
+            <h2 class="acc-h2">Расписание</h2>
+            <p class="muted">Выберите день, запишитесь на занятие и приходите к назначенному времени.</p>
+          </div>
+        </div>
+        <div id="scheduleRoot" class="schedule-root"><!-- modules/booking.js --></div>
+      </section>
+
+      <!-- Настройки -->
+      <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" class="dash-panel" hidden>
+        <div class="dash-head">
+          <div>
+            <h2 class="acc-h2">Настройки</h2>
+            <p class="muted">Язык, безопасность и управление аккаунтом.</p>
+          </div>
+        </div>
+
+        <div class="acc-settings">
+          <div class="panel">
+            <h3 class="acc-h3">Язык сайта</h3>
+            <p class="note">Сохраняется в аккаунте: войдёте в кабинет на другом устройстве — сайт откроется на этом языке.</p>
+            <div class="seg acc-lang" id="langSeg" role="group" aria-label="Язык сайта">
+              <button type="button" data-value="ru" aria-pressed="true">Русский</button>
+              <button type="button" data-value="kz" aria-pressed="false">Қазақша</button>
+            </div>
+            <p class="acc-status" id="langStatus" role="status"></p>
+          </div>
+
+          <div class="panel">
+            <h3 class="acc-h3">Сеансы</h3>
+            <p class="note">Входили с чужого телефона или компьютера — завершите сеансы там. На этом устройстве вход сохранится.</p>
+            <div class="acc-actions">
+              <button class="btn outline" id="logoutAllBtn" type="button" data-demo-off>Выйти на других устройствах</button>
+              <p class="acc-status" id="sessionsStatus" role="status"></p>
+            </div>
+          </div>
+
+          <form class="panel acc-form" id="passwordForm" novalidate>
+            <h3 class="acc-h3">Смена пароля</h3>
+            <input type="email" name="username" autocomplete="username" hidden>
+            <div class="field">
+              <label for="pw-current">Текущий пароль</label>
+              <input id="pw-current" name="currentPassword" type="password" autocomplete="current-password" required data-demo-off>
+              <span class="field__error" data-error="currentPassword"></span>
+            </div>
+            <div class="field">
+              <label for="pw-new">Новый пароль <small>— не короче 8 символов</small></label>
+              <input id="pw-new" name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required data-demo-off>
+              <span class="field__error" data-error="newPassword"></span>
+            </div>
+            <p class="note">После смены пароля выход выполнится на всех других устройствах.</p>
+            <div class="acc-actions">
+              <button class="btn primary" type="submit" data-demo-off>Сменить пароль</button>
+              <p class="acc-status" data-status role="status"></p>
+            </div>
+          </form>
+
+          <form class="panel acc-form acc-danger" id="deleteForm" novalidate>
+            <h3 class="acc-h3">Удаление аккаунта</h3>
+            <p class="note">Аккаунт, личные данные и сведения об абонементе в кабинете удаляются безвозвратно. Если абонемент ещё действует — сначала уточните на ресепшене, как пользоваться им дальше.</p>
+            <div class="field">
+              <label for="del-password">Пароль для подтверждения</label>
+              <input id="del-password" name="password" type="password" autocomplete="current-password" required data-demo-off>
+              <span class="field__error" data-error="password"></span>
+            </div>
+            <div class="acc-actions">
+              <button class="btn danger" type="submit" data-demo-off>Удалить аккаунт</button>
+              <p class="acc-status" data-status role="status"></p>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="acc-footer">
+  <div class="wrap">
+    <span>Аквапарк «Нептун», Петропавловск</span>
+    <span>Вопросы по абонементу: <a href="tel:+77152336141">+7 7152 33-61-41</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

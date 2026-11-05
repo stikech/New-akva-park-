@@ -1,0 +1,10 @@
+/* Правила тарификации времени — нумерованная последовательность шагов. */
+
+.timeline { display: grid; gap: 16px; margin-top: 36px; counter-reset: step; }
+@media (min-width: 480px) { .timeline { grid-template-columns: repeat(2, 1fr); gap: 20px 16px; } }
+@media (min-width: 960px) { .timeline { grid-template-columns: repeat(4, 1fr); } }
+
+.step { padding-top: 16px; border-top: 3px solid color-mix(in srgb, var(--water) 45%, var(--line)); counter-increment: step; }
+.step::before { content: counter(step); color: var(--water-ink); font: 700 14px "Unbounded"; }
+.step h3 { margin: 8px 0 6px; font-size: 17px; }
+.step p { color: var(--muted); font-size: 15px; }

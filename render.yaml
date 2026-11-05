@@ -1,0 +1,35 @@
+# Render Blueprint: один бесплатный web-сервис (API + фронтенд).
+# Деплой: https://render.com/deploy?repo=https://github.com/SAKEDA-hub/neptun-aquapark-site
+services:
+  - type: web
+    name: neptun-aquapark
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: node --version
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render стоит перед сервером как один прокси — берём IP клиента из X-Forwarded-For.
+      - key: TRUST_PROXY
+        value: "1"
+      # Демо-аккаунты кабинета (demo@neptun.kz, gold@neptun.kz, new@neptun.kz / neptun2026).
+      # Пересоздаются при каждом запуске, поэтому не пропадают на временном диске. Выключить: "0".
+      - key: DEMO_ACCOUNTS
+        value: "1"
+      # Токен админки генерируется автоматически; посмотреть: Dashboard → Environment.
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Секрет подписи чеков оплаты. Генерируется один раз и хранится в Render —
+      # не меняйте его: смена делает старые чеки «неподписанными».
+      - key: PAYMENT_SECRET
+        generateValue: true
+      # Заполнить в Dashboard, чтобы отзывы приходили в Telegram (на free-тарифе диск не сохраняется).
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false

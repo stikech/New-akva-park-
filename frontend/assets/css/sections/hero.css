@@ -1,0 +1,94 @@
+/* Hero: статус работы, температура «снаружи / внутри», волны; полоса фактов.
+   Светлая версия: белая страница, контурная надпись и акварельный градиент
+   уводят в волны. */
+
+.hero {
+  position: relative;
+  padding: 48px 0 150px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--snow) 30%, var(--lagoon) 100%);
+  color: var(--ink);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(50% 60% at 88% 8%, color-mix(in srgb, var(--water) 22%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.hero .wrap { position: relative; }
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px -18px color-mix(in srgb, var(--deep) 40%, transparent);
+}
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #23B268; box-shadow: 0 0 0 4px rgba(35, 178, 104, .18); }
+.dot.off { background: #E4574A; box-shadow: 0 0 0 4px rgba(228, 87, 74, .18); }
+
+.temps { display: grid; gap: 8px; margin-top: 36px; margin-bottom: 24px; }
+.temps .cold,
+.temps .warm { font: 900 clamp(52px, 11vw, 136px)/.95 "Unbounded"; letter-spacing: -.03em; }
+.temps .cold { color: transparent; -webkit-text-stroke: 2px color-mix(in srgb, var(--water) 40%, var(--snow)); }
+.temps .warm { color: var(--water-ink); }
+.temps small {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font: 500 15px/1.4 "Golos Text";
+  letter-spacing: 0;
+  -webkit-text-stroke: 0;
+}
+
+.hero .sub { max-width: 46ch; color: var(--muted); font-size: 19px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+
+.waves { position: absolute; left: 0; right: 0; bottom: -1px; height: 120px; overflow: hidden; }
+.waves svg { position: absolute; bottom: 0; width: 200%; height: 100%; }
+.w1 { fill: var(--snow); animation: drift 14s linear infinite; }
+.w2 { fill: color-mix(in srgb, var(--water) 28%, var(--snow)); animation: drift 22s linear infinite reverse; opacity: .7; }
+@keyframes drift { to { transform: translateX(-50%); } }
+
+/* Появление при загрузке: единый сценарий для hero — ступени через animation-delay. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+.hero .status { animation: rise .6s cubic-bezier(.22, .61, .21, 1) .05s both; }
+.temps .cold { animation: rise .7s cubic-bezier(.22, .61, .21, 1) .14s both; }
+.temps .warm { animation: rise .7s cubic-bezier(.22, .61, .21, 1) .24s both; }
+.hero .sub { animation: rise .7s cubic-bezier(.22, .61, .21, 1) .34s both; }
+.hero .cta { animation: rise .7s cubic-bezier(.22, .61, .21, 1) .42s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .w1, .w2 { animation: none; }
+  .hero .status, .temps .cold, .temps .warm, .hero .sub, .hero .cta { animation: none; }
+}
+
+/* Полоса фактов, наезжающая на hero */
+.facts {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  margin-top: -70px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: 0 24px 48px -36px color-mix(in srgb, var(--deep) 45%, transparent);
+}
+@media (min-width: 820px) { .facts { grid-template-columns: repeat(4, 1fr); } }
+.fact { padding: 22px 20px; background: var(--card); }
+.fact + .fact { border-left: 1px solid var(--line); }
+@media (max-width: 819px) { .fact:nth-child(n+3) { border-top: 1px solid var(--line); } .fact:nth-child(2n) { border-left: 1px solid var(--line); } .fact:nth-child(2n+1) { border-left: 0; } }
+.fact b { display: block; color: var(--water-ink); font: 700 30px/1 "Unbounded"; }
+.fact span { display: block; margin-top: 8px; color: var(--muted); font-size: 15px; line-height: 1.4; }

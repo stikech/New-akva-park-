@@ -1,0 +1,15 @@
+{
+  "name": "neptun-aquapark-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Сайт аквапарка «Нептун» (Петропавловск): фронтенд + бэкенд на Node.js без внешних зависимостей",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "dev": "node --watch backend/src/server.js",
+    "test": "npm --prefix frontend test && npm --prefix backend test"
+  }
+}

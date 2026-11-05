@@ -1,0 +1,15 @@
+/* Движение: появление секций при скролле.
+   Класс .reveal навешивает модуль reveal.js — если JS не загрузился,
+   контент видим и без анимации (пустых «слепых» мест нет). */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .65s ease, transform .65s cubic-bezier(.22, .61, .21, 1);
+  transition-delay: calc(var(--reveal-i, 0) * 70ms);
+}
+.reveal.is-in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
