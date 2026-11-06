@@ -65,3 +65,8 @@
 }
 @keyframes kaspi-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .kaspi .spinner { animation: none; } }
+
+/* Согласие с офертой в магазине кабинета (на сайте — .vc-consent в prices.css). */
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); cursor: pointer; }
+.consent input { width: 18px; height: 18px; flex: none; margin-top: 2px; accent-color: var(--water-ink); }
+.consent a { color: var(--water-ink); }

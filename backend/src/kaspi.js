@@ -46,6 +46,7 @@ export function kaspiInfo(config) {
     receiver: enabled ? receiver : null,
     payLink: enabled ? payLink ?? null : null,
     qr: enabled ? qr ?? null : null,
+    seller: { name: config.seller?.name ?? null, bin: config.seller?.bin ?? null },
   };
 }
 

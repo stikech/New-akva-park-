@@ -86,7 +86,8 @@ async function accountRequest(method, path, body, { timeoutMs = 10_000, idempote
 
 /** Личный кабинет: вход, профиль, настройки (docs/api-contract.md). */
 export const accountApi = {
-  session: () => accountRequest('GET', '/auth/session', undefined, { timeoutMs: 4000 }),
+  // Бесплатный Render «просыпается» до минуты — короткий таймаут показывал «Войти» вошедшему.
+  session: () => accountRequest('GET', '/auth/session', undefined, { timeoutMs: 20_000 }),
   register: (data) => accountRequest('POST', '/auth/register', data),
   login: (data) => accountRequest('POST', '/auth/login', data),
   logout: () => accountRequest('POST', '/auth/logout'),
@@ -105,7 +106,8 @@ export const accountApi = {
 export const shopApi = {
   orders: () => accountRequest('GET', '/orders'),
   order: (id) => accountRequest('GET', `/orders/${id}`),
-  createOrder: (planId) => accountRequest('POST', '/orders', { planId }, { idempotencyKey: crypto.randomUUID() }),
+  catalog: () => accountRequest('GET', '/catalog', undefined, { timeoutMs: 20_000 }),
+  createOrder: (planId, { consent = false } = {}) => accountRequest('POST', '/orders', { planId, consent }, { idempotencyKey: crypto.randomUUID() }),
   payOrder: (id, card) => accountRequest('POST', `/orders/${id}/pay`, card),
   claimKaspi: (id) => accountRequest('POST', `/orders/${id}/kaspi-claim`, {}),
   cancelOrder: (id) => accountRequest('POST', `/orders/${id}/cancel`, {}),

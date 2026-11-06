@@ -135,7 +135,7 @@ export function createVisitRoutes({
       }
     } else errors['contact.email'] = 'Укажите почту для подтверждения визита';
 
-    if (body?.consent !== true) errors.consent = 'Нужно согласие с правилами аквапарка';
+    if (body?.consent !== true) errors.consent = 'Нужно принять условия публичной оферты';
 
     if (Object.keys(errors).length) return { ok: false, errors };
 
@@ -228,7 +228,7 @@ export function createVisitRoutes({
       }
 
       const nowISO = clock().toISOString();
-      const { visit, created } = await visits.create({ ...order, payCode: newPayCode(), idempotencyKey: String(key), now: nowISO });
+      const { visit, created } = await visits.create({ ...order, payCode: newPayCode(), consentAt: nowISO, idempotencyKey: String(key), now: nowISO });
       if (created) {
         await journal.record('visit_created', {
           visitId: visit.id, userId: visit.userId ?? null, guests: visit.adults + visit.children, price: visit.price,

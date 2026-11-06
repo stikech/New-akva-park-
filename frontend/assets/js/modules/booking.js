@@ -10,7 +10,7 @@
  * показывает, какой тип абонемента нужен, кнопка ведёт в магазин.
  */
 
-import { scheduleApi } from '../services/api.js?v=3';
+import { scheduleApi } from '../services/api.js?v=4';
 import { escapeHtml } from '../utils/format.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);

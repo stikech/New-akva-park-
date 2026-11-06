@@ -5,7 +5,7 @@
  * браузера помнит localStorage.
  */
 
-import { visitApi } from '../services/api.js?v=3';
+import { visitApi } from '../services/api.js?v=4';
 import { escapeHtml, formatPrice, plural } from '../utils/format.js';
 import { bindCopyButtons, kaspiDisabledHtml, kaspiPayHtml, kaspiWaitingHtml, pollUntilSettled } from './kaspi-pay.js';
 

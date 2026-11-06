@@ -11,6 +11,16 @@ import { addMonths, isValidDate } from '../../frontend/assets/js/utils/account.j
 import { plural } from '../../frontend/assets/js/utils/format.js';
 
 const visitsWord = (n) => plural(n, ['посещение', 'посещения', 'посещений']);
+
+/** Карты тренажёрного зала (остальные карты фитнеса — групповые программы). */
+const GYM_CARDS = new Set(['day', 'evening']);
+
+/** Группы витрины магазина — в этом порядке. */
+export const CATALOG_GROUPS = [
+  { id: 'gym', title: 'Тренажёрный зал' },
+  { id: 'pool', title: 'Бассейн' },
+  { id: 'classes', title: 'Групповые программы' },
+];
 const monthsWord = (n) => plural(n, ['месяц', 'месяца', 'месяцев']);
 
 export function buildCatalog(data = SITE_DATA) {
@@ -22,6 +32,7 @@ export function buildCatalog(data = SITE_DATA) {
       plans.push({
         id: `fitness:${card.id}:${pkg.visits}`,
         category: 'fitness',
+        group: GYM_CARDS.has(card.id) ? 'gym' : 'classes',
         title: `Фитнес · ${card.name} · ${pkg.visits} ${visitsWord(pkg.visits)}`,
         visitsTotal: pkg.visits,
         durationMonths: null,
@@ -34,6 +45,7 @@ export function buildCatalog(data = SITE_DATA) {
     plans.push({
       id: `gold:${period.months}`,
       category: 'fitness',
+      group: 'gym',
       title: `Фитнес · ${data.fitness.gold.name} · ${period.months} ${monthsWord(period.months)}, безлимит`,
       visitsTotal: null,
       durationMonths: period.months,
@@ -46,6 +58,7 @@ export function buildCatalog(data = SITE_DATA) {
     plans.push({
       id: `pool:${row.id}:12`,
       category: 'pool',
+      group: 'pool',
       title: `Бассейн · ${row.label} · 12 посещений, 2 месяца`,
       visitsTotal: 12,
       durationMonths: 2,

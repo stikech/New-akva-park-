@@ -63,7 +63,7 @@ export function createVisitStore(dataDir, { now = () => Date.now() } = {}) {
     file,
 
     /** Создаёт запись визита. Повтор с тем же ключом идемпотентности вернёт существующий. */
-    create({ email, firstName, userId, phone, adults, children, day, duration, price, payCode = null, idempotencyKey, now: isoNow }) {
+    create({ email, firstName, userId, phone, adults, children, day, duration, price, payCode = null, consentAt = null, idempotencyKey, now: isoNow }) {
       return mutate((s) => {
         const existing = s.visits.find((v) => v.idempotencyKey === idempotencyKey);
         if (existing) return { visit: existing, created: false };
@@ -79,6 +79,7 @@ export function createVisitStore(dataDir, { now = () => Date.now() } = {}) {
           duration,
           price,
           payCode,
+          consentAt,
           status: VISIT_STATUS.pending,
           createdAt: isoNow,
           updatedAt: isoNow,

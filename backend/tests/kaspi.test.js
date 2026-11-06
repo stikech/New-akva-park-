@@ -66,7 +66,7 @@ describe('Kaspi: билеты', () => {
 
   test('реквизиты отдаются публично и вместе с визитом', async () => {
     const info = await (await fetch(`${srv.base}/api/payment`)).json();
-    assert.deepEqual(info, { method: 'kaspi', enabled: true, phone: '+7 777 123 45 67', receiver: 'Аквапарк «Нептун»', payLink: null, qr: null });
+    assert.deepEqual(info, { method: 'kaspi', enabled: true, phone: '+7 777 123 45 67', receiver: 'Аквапарк «Нептун»', payLink: null, qr: null, seller: { name: null, bin: null } });
     const { visit, payment } = await createVisit(srv.base);
     assert.equal(payment.phone, '+7 777 123 45 67');
     assert.match(visit.payCode, /^NP-/);
@@ -145,7 +145,7 @@ describe('Kaspi: абонементы', () => {
   after(async () => { await srv.close(); });
 
   test('заказ → «Я оплатил» → подтверждение админом выдаёт абонемент', async () => {
-    const created = await fetch(`${srv.base}/api/orders`, json({ planId: 'pool:adult:12' }, { Cookie: cookie, 'Idempotency-Key': crypto.randomUUID(), Origin: srv.base }));
+    const created = await fetch(`${srv.base}/api/orders`, json({ planId: 'pool:adult:12', consent: true }, { Cookie: cookie, 'Idempotency-Key': crypto.randomUUID(), Origin: srv.base }));
     const { order, payment } = await created.json();
     assert.equal(payment.enabled, true);
     assert.match(order.payCode, /^NP-/);
@@ -169,9 +169,41 @@ describe('Kaspi: абонементы', () => {
   });
 
   test('без входа «Я оплатил» по заказу — 401', async () => {
-    const created = await fetch(`${srv.base}/api/orders`, json({ planId: 'pool:adult:12' }, { Cookie: cookie, 'Idempotency-Key': crypto.randomUUID(), Origin: srv.base }));
+    const created = await fetch(`${srv.base}/api/orders`, json({ planId: 'pool:adult:12', consent: true }, { Cookie: cookie, 'Idempotency-Key': crypto.randomUUID(), Origin: srv.base }));
     const { order } = await created.json();
     const res = await fetch(`${srv.base}/api/orders/${order.id}/kaspi-claim`, json({}, { Origin: srv.base }));
     assert.equal(res.status, 401);
+  });
+});
+
+describe('Магазин: витрина и оферта', () => {
+  let srv;
+  let cookie;
+  before(async () => {
+    srv = await startServer();
+    const res = await fetch(`${srv.base}/api/auth/register`, json({ email: 'shop@neptun.kz', password: 'supersafepw1', firstName: 'Тест', consent: true }, { Origin: srv.base }));
+    cookie = res.headers.get('set-cookie').split(';')[0];
+  });
+  after(async () => { await srv.close(); });
+
+  test('витрина публичная: абонементы в тренажёрный зал, бассейн и группы', async () => {
+    const res = await fetch(`${srv.base}/api/catalog`);
+    assert.equal(res.status, 200);
+    const { groups, catalog, payment } = await res.json();
+    assert.deepEqual(groups.map((g) => g.id), ['gym', 'pool', 'classes']);
+    assert.ok(catalog.some((p) => p.group === 'gym' && p.id.startsWith('fitness:day:')));
+    assert.ok(catalog.some((p) => p.group === 'gym' && p.id.startsWith('gold:')));
+    assert.ok(catalog.every((p) => groups.some((g) => g.id === p.group)));
+    assert.equal(payment.enabled, true);
+  });
+
+  test('без согласия с офертой заказ не создаётся (422)', async () => {
+    const res = await fetch(`${srv.base}/api/orders`, json({ planId: 'fitness:day:12' }, { Cookie: cookie, 'Idempotency-Key': crypto.randomUUID(), Origin: srv.base }));
+    assert.equal(res.status, 422);
+    assert.ok((await res.json()).errors.consent);
+  });
+
+  test('страницы /shop и /offer отдаются', async () => {
+    for (const p of ['/shop', '/offer']) assert.equal((await fetch(`${srv.base}${p}`)).status, 200, p);
   });
 });

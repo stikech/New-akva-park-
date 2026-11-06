@@ -20,7 +20,8 @@
  *  - чужой заказ неотличим от отсутствующего (404 в обоих случаях);
  *  - append-only аудит (audit.js) без персональных данных карты.
  *
- *   POST   /api/orders            — создать заказ { planId }, Idempotency-Key обязателен
+ *   GET    /api/catalog           — витрина абонементов (публично, для страницы /shop)
+ *   POST   /api/orders            — создать заказ { planId, consent: true }, Idempotency-Key обязателен
  *   GET    /api/orders            — мои заказы
  *   GET    /api/orders/:id        — статус заказа (владелец)
  *   POST   /api/orders/:id/pay    — оплатить картой { number, exp, cvc, holder } (только PAYMENT_MODE=demo)
@@ -34,7 +35,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { HttpError, assertSameOrigin, clientIp, readJsonBody, sendJson } from './http.js';
 import { createRateLimiter } from './rate-limit.js';
-import { buildCatalog } from './memberships.js';
+import { CATALOG_GROUPS, buildCatalog } from './memberships.js';
 import { SITE_DATA } from '../../frontend/assets/js/config/site-data.js';
 import { cityDateString } from '../../frontend/assets/js/utils/account.js';
 import { validateCard } from '../../frontend/assets/js/utils/card.js';
@@ -163,6 +164,10 @@ export function createPaymentRoutes({
   // ---------- маршруты ----------
 
   const routes = {
+    'GET /api/catalog': (req, res) => {
+      sendJson(res, 200, { groups: CATALOG_GROUPS, catalog, payment: kaspiInfo(config) });
+    },
+
     'GET /api/orders': async (req, res) => {
       const { user } = await requireUser(req);
       const items = (await orders.listByUser(user.id)).map(publicOrder);
@@ -186,6 +191,9 @@ export function createPaymentRoutes({
       }
       const plan = catalog.find((p) => p.id === body?.planId);
       if (!plan) return sendJson(res, 422, { errors: { planId: 'Тариф не найден — обновите страницу и выберите заново' } });
+      if (body?.consent !== true) {
+        return sendJson(res, 422, { errors: { consent: 'Нужно принять условия публичной оферты' } });
+      }
 
       const mine = await orders.listByUser(user.id, { limit: 100 });
       if (mine.filter((o) => o.status === 'pending').length >= 10) {
@@ -195,7 +203,7 @@ export function createPaymentRoutes({
       const nowISO = clock().toISOString();
       const { order, created } = await orders.create({
         userId: user.id, planId: plan.id, category: plan.category, title: plan.title, price: plan.price,
-        payCode: newPayCode(), idempotencyKey: String(key), now: nowISO,
+        payCode: newPayCode(), consentAt: nowISO, idempotencyKey: String(key), now: nowISO,
       });
       if (created) {
         await journal.record('order_created', { orderId: order.id, userId: user.id, planId: order.planId, price: order.price });

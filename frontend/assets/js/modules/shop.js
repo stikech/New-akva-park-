@@ -8,14 +8,15 @@
  * Абонемент выдаётся сразу после того, как администратор подтвердит перевод.
  */
 
-import { shopApi } from '../services/api.js?v=3';
+import { shopApi } from '../services/api.js?v=4';
 import { escapeHtml, formatPrice, plural } from '../utils/format.js';
+import { CONSENT_HTML, perVisit, planMeta, planTitle } from '../utils/plans.js';
 import { bindCopyButtons, kaspiDisabledHtml, kaspiPayHtml, kaspiWaitingHtml, pollUntilSettled } from './kaspi-pay.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
-const CATEGORY_LABEL = { pool: 'Бассейн', fitness: 'Фитнес-клуб' };
+const GROUP_LABEL = { gym: 'Тренажёрный зал', pool: 'Бассейн', classes: 'Групповые программы' };
 const STATUS_LABEL = { pending: 'Ожидает оплаты', paid: 'Оплачен', cancelled: 'Отменён', expired: 'Истёк' };
 
 /**
@@ -25,7 +26,8 @@ const STATUS_LABEL = { pending: 'Ожидает оплаты', paid: 'Оплач
  *  - goto(tab, planId?) — переключение вкладок, planId выбирает тариф.
  */
 export function initShop({ root, getUser, refreshUser, goto }) {
-  let state = 'loading'; // catalog | checkout | receipt
+  let state = 'loading'; // catalog | confirm (оферта) | checkout | receipt
+  let confirmPlan = null; // тариф на шаге согласия с офертой
   let plans = [];
   let orders = [];
   let activeOrder = null;
@@ -42,22 +44,13 @@ export function initShop({ root, getUser, refreshUser, goto }) {
 
   // ---------- helpers ----------
 
-  const planTitle = (p) => p.title.split(' · ').slice(1).join(' · ');
-  const planMeta = (p) => {
-    if (p.visitsTotal == null) return p.durationMonths ? `${p.durationMonths} ${plural(p.durationMonths, ['месяц', 'месяца', 'месяцев'])} · безлимит` : 'безлимит';
-    const visits = `${p.visitsTotal} ${plural(p.visitsTotal, ['посещение', 'посещения', 'посещений'])}`;
-    return p.durationMonths ? `${visits}, ${p.durationMonths} ${plural(p.durationMonths, ['месяц', 'месяца', 'месяцев'])}` : visits;
-  };
-  const perVisit = (p) => (p.visitsTotal ? `${formatPrice(Math.ceil(p.price / p.visitsTotal))} за посещение` : null);
-
-  /** Список планов своей категории (для продления) и всех остальных. */  function grouped() {
-    const mine = user()?.membership?.category ?? null;
-    const groups = { pool: [], fitness: [] };
-    for (const p of plans) groups[p.category]?.push(p);
-    // сначала та категория, где абонемент пользователя (или бассейн)
-    const first = mine && groups[mine] ? mine : 'pool';
-    const order = Object.keys(groups).sort((a, b) => (a === first ? -1 : b === first ? 1 : 0));
-    return order.map((k) => ({ key: k, label: CATEGORY_LABEL[k] ?? k, plans: groups[k] }));
+  /** Тарифы по группам витрины; первой — группа текущего абонемента. */
+  function grouped() {
+    const mine = plans.find((p) => p.id === currentPlanId())?.group ?? null;
+    const keys = Object.keys(GROUP_LABEL).sort((a, b) => (a === mine ? -1 : b === mine ? 1 : 0));
+    return keys
+      .map((k) => ({ key: k, label: GROUP_LABEL[k], plans: plans.filter((p) => (p.group ?? p.category) === k) }))
+      .filter((g) => g.plans.length);
   }
 
   const isCurrent = (p) => p.id === currentPlanId();
@@ -79,7 +72,7 @@ export function initShop({ root, getUser, refreshUser, goto }) {
       return `
         <article class="shop-plan${p.category === 'fitness' && p.visitsTotal == null ? ' shop-plan--gold' : ''}" data-plan-id="${escapeHtml(p.id)}">
           <div class="shop-plan__head">
-            <span class="shop-plan__cat">${escapeHtml(CATEGORY_LABEL[p.category] ?? p.category)}</span>
+            <span class="shop-plan__cat">${escapeHtml(GROUP_LABEL[p.group] ?? p.category)}</span>
             ${current ? '<span class="badge" data-code="active">Ваш тариф</span>' : ''}
           </div>
           <h3 class="shop-plan__title">${escapeHtml(planTitle(p))}</h3>
@@ -166,6 +159,55 @@ export function initShop({ root, getUser, refreshUser, goto }) {
       </div>`;
   }
 
+  // ---------- render: согласие с офертой ----------
+
+  function confirmHtml(plan) {
+    return `
+      <div class="shop-checkout">
+        <button class="shop-back" type="button" data-shop-back>← К каталогу</button>
+        <div class="panel">
+          <h3 class="acc-h3">Оформление</h3>
+          <p class="shop-checkout__summary"><b>${escapeHtml(planTitle(plan))}</b><span>${escapeHtml(planMeta(plan))}</span></p>
+          <p class="shop-checkout__amount"><span>К оплате</span><b>${formatPrice(plan.price)}</b></p>
+          <form id="confirmForm" class="acc-form" novalidate>
+            <label class="consent">
+              <input name="consent" type="checkbox" required>
+              <span>${CONSENT_HTML}</span>
+            </label>
+            <span class="field__error" data-error="consent"></span>
+            <p class="acc-status" data-status role="alert"></p>
+            <div class="acc-actions">
+              <button class="btn primary" type="submit">Перейти к оплате</button>
+              <button class="btn outline" type="button" data-shop-back>Отмена</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+  }
+
+  function bindConfirm() {
+    $$('[data-shop-back]', root).forEach((b) => b.addEventListener('click', backToCatalog));
+    const form = $('#confirmForm', root);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const error = $('[data-error="consent"]', form);
+      error.textContent = form.elements.consent.checked ? '' : 'Без согласия с условиями оплатить нельзя';
+      if (!form.elements.consent.checked) return;
+      const button = $('button[type="submit"]', form);
+      button.disabled = true;
+      $('[data-status]', form).textContent = 'Оформляем заказ…';
+      try {
+        const { order } = await shopApi.createOrder(confirmPlan.id, { consent: true });
+        if (order.status !== 'pending') { await load(); return; }
+        showCheckout(order);
+      } catch (err) {
+        if (err.status === 422 && err.body?.errors?.planId) { await load(); return; }
+        $('[data-status]', form).textContent = err.status === 401 ? 'Сеанс завершён — войдите снова.' : err.message;
+        button.disabled = false;
+      }
+    });
+  }
+
   // ---------- render: чек ----------
 
   function receiptHtml(order) {
@@ -202,6 +244,12 @@ export function initShop({ root, getUser, refreshUser, goto }) {
         <div class="shop-root__load" role="status">
           <span class="spinner" aria-hidden="true"></span> Загружаем каталог…
         </div>`;
+      return;
+    }
+
+    if (state === 'confirm' && confirmPlan) {
+      root.innerHTML = confirmHtml(confirmPlan);
+      bindConfirm();
       return;
     }
 
@@ -294,24 +342,14 @@ export function initShop({ root, getUser, refreshUser, goto }) {
     setTimeout(() => note.remove(), 8000);
   }
 
-  /**
-   * Клик по тарифу каталога: создаём заказ на сервере (цена только из
-   * каталога) и открываем оплату. Повторный клик заблокирован — один клик
-   * = один заказ.
-   */
-  async function openPlanCheckout(btn) {
-    const planId = btn.dataset.buy;
-    if (!planId || btn.disabled) return;
-    btn.disabled = true;
-    try {
-      const { order } = await shopApi.createOrder(planId);
-      if (order.status !== 'pending') { await load(); return; }
-      showCheckout(order);
-    } catch (error) {
-      if (error.status === 422) { await load(); return; } // тариф обновился — перечитаем каталог
-      await load();
-      showNote(error.message);
-    }
+  /** Клик по тарифу каталога: сначала согласие с офертой, заказ создаётся после него. */
+  function openPlanCheckout(btn) {
+    const plan = plans.find((p) => p.id === btn.dataset.buy);
+    if (!plan) return;
+    confirmPlan = plan;
+    state = 'confirm';
+    render();
+    requestAnimationFrame(() => $('#confirmForm input[name="consent"]', root)?.focus({ preventScroll: true }));
   }
 
   /** Клик «Оплатить» у pending-заказа в истории заказов. */

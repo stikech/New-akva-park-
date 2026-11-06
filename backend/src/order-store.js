@@ -61,7 +61,7 @@ export function createOrderStore(dataDir, { now = () => Date.now() } = {}) {
     file,
 
     /** Создаёт pending-заказ. Если ключ уже использован этим пользователем — вернёт существующий. */
-    create({ userId, planId, category, title, price, payCode = null, idempotencyKey, now: isoNow }) {
+    create({ userId, planId, category, title, price, payCode = null, consentAt = null, idempotencyKey, now: isoNow }) {
       return mutate((s) => {
         const existing = byKey(s, userId, idempotencyKey);
         if (existing) return { order: existing, created: false };
@@ -73,6 +73,7 @@ export function createOrderStore(dataDir, { now = () => Date.now() } = {}) {
           title,
           price,
           payCode,
+          consentAt,
           status: ORDER_STATUS.pending,
           createdAt: isoNow,
           updatedAt: isoNow,

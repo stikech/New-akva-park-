@@ -11,10 +11,10 @@
  * Данные из API выводятся через textContent или escapeHtml — без сырого HTML.
  */
 
-import { accountApi, shopApi } from './services/api.js?v=3';
+import { accountApi, shopApi } from './services/api.js?v=4';
 import { initTabs } from './modules/tabs.js';
 import { initTheme } from './modules/theme.js';
-import { initShop } from './modules/shop.js';
+import { initShop } from './modules/shop.js?v=2';
 import { initBooking } from './modules/booking.js';
 import { escapeHtml, formatPrice, initials, plural } from './utils/format.js';
 import {
@@ -150,7 +150,17 @@ function goto(section) {
   navigate(section);
 }
 
+/** Куда вернуться после входа: только свой сайт (/shop…), не чужой домен и не //host. */
+function returnPath() {
+  const next = new URLSearchParams(location.search).get('next') ?? '';
+  return /^\/(?!\/)[\w\-/?=&.:%]*$/.test(next) && !next.startsWith('/account') ? next : null;
+}
+
+// Запоминаем при загрузке: экран входа убирает query-параметры из адреса.
+const RETURN_TO = returnPath();
+
 function onSignedIn(nextUser) {
+  if (RETURN_TO) { location.replace(RETURN_TO); return; }
   user = nextUser;
   persistLang(user.lang);
   scheduleStale = true; // у нового сеанса свои посещения и записи

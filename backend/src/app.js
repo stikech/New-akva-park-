@@ -39,7 +39,7 @@ import { createVisitStore } from './visit-store.js';
 import { kaspiInfo } from './kaspi.js';
 
 /** Разделы сайта — отдельные страницы frontend/<раздел>.html, на них ведут кнопки шапки. */
-const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'ticket'];
+const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'shop', 'ticket', 'offer'];
 const SITE_PAGES = new Map(SITE_SECTION_SLUGS.flatMap((s) => [[`/${s}`, `${s}.html`], [`/${s}/`, `${s}.html`]]));
 
 const sha256 = (s) => createHash('sha256').update(s).digest();

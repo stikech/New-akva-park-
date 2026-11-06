@@ -61,6 +61,12 @@ export function readConfig(env = process.env) {
       qr: str(env.KASPI_QR) ?? str(PAYMENT.kaspiQr),
     },
 
+    /** Продавец в публичной оферте (/offer). */
+    seller: {
+      name: str(env.SELLER_NAME) ?? str(PAYMENT.sellerName),
+      bin: str(env.SELLER_BIN) ?? str(PAYMENT.sellerBin),
+    },
+
     /**
      * Постоянное хранение данных на бесплатном хостинге: копия DATA_DIR в Upstash Redis
      * (REST API, бесплатно). Без переменных — только локальные файлы.

@@ -12,6 +12,7 @@ export const STATIC_TRANSLATIONS = {
   kz: {
     nSlides: 'Төбешіктер',
     nPrices: 'Бағалар',
+    nShop: 'Дүкен',
     nSpa: 'SPA',
     nPool: 'Бассейн және кафе',
     nFitness: 'Фитнес',

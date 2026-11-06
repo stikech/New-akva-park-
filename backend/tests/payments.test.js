@@ -53,7 +53,7 @@ async function registerUser(base, email, password = 'supersafepw1') {
 }
 
 const createOrder = (base, cookie, planId, idempotencyKey = crypto.randomUUID()) =>
-  fetch(`${base}/api/orders`, json({ planId }, { Cookie: cookie, 'Idempotency-Key': idempotencyKey, Origin: base }));
+  fetch(`${base}/api/orders`, json({ planId, consent: true }, { Cookie: cookie, 'Idempotency-Key': idempotencyKey, Origin: base }));
 
 const pay = (base, cookie, orderId, card = CARD_OK) =>
   fetch(`${base}/api/orders/${orderId}/pay`, json(card, { Cookie: cookie, Origin: base }));
@@ -95,7 +95,7 @@ describe('Заказы и оплата', () => {
 
   test('цена заказа всегда из каталога сервера, пришедшую цену игнорируем', async () => {
     const res = await fetch(`${srv.base}/api/orders`, json(
-      { planId: 'pool:adult:12', price: 1 },
+      { planId: 'pool:adult:12', price: 1, consent: true },
       { Cookie: anna.cookie, 'Idempotency-Key': 'price-ignore-key-00001234', Origin: srv.base },
     ));
     assert.ok([200, 201].includes(res.status));

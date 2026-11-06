@@ -21,7 +21,7 @@ header {
 }
 .logo svg { width: 30px; height: 30px; }
 
-nav.main { display: none; gap: 24px; margin-left: auto; }
+nav.main { display: none; gap: clamp(12px, 1.3vw, 22px); margin-left: auto; white-space: nowrap; }
 nav.main a {
   text-decoration: none;
   font-weight: 500;
@@ -47,6 +47,7 @@ nav.main a:hover, nav.main a[aria-current="true"], nav.main a[aria-current="page
   transition: box-shadow .2s ease, background-color .2s ease;
 }
 .account-link:hover { box-shadow: inset 0 0 0 1.5px var(--water); }
+.account-link [data-account-label] { max-width: 9ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-link[data-signed-in] { background: var(--deep); box-shadow: none; color: #fff; }
 
 .lang {
@@ -121,7 +122,8 @@ nav.main a:hover, nav.main a[aria-current="true"], nav.main a[aria-current="page
 }
 .drawer a[aria-current="true"], .drawer a[aria-current="page"] { color: var(--ink); text-decoration-color: var(--water); text-decoration-line: underline; text-underline-offset: 6px; }
 
-@media (min-width: 1000px) {
+/* 9 пунктов меню помещаются в строку от 1200px; уже — бургер. */
+@media (min-width: 1200px) {
   nav.main { display: flex; }
   .account-link { margin-left: 16px; }
   .lang { margin-left: 8px; }

@@ -4,15 +4,15 @@
  * своя часть разметки, поэтому модуль запускается, только если его блок есть.
  */
 
-import { getSiteData } from './services/api.js?v=3';
+import { getSiteData } from './services/api.js?v=4';
 import { cityNow, dayType, weekdayIndex } from './utils/time.js';
-import { createI18n } from './modules/i18n.js?v=3';
+import { createI18n } from './modules/i18n.js?v=4';
 import { initOpenStatus } from './modules/status.js';
 import { initWeather } from './modules/weather.js?v=2';
 import { initSlides } from './modules/slides.js';
 import { renderParkPrices, renderPoolPrices } from './modules/prices.js';
 import { initCalculator } from './modules/calculator.js';
-import { initVisitCheckout } from './modules/visit-checkout.js?v=2';
+import { initVisitCheckout } from './modules/visit-checkout.js?v=3';
 import { initTabs } from './modules/tabs.js';
 import { renderFitness } from './modules/fitness.js';
 import { renderSchedulePreview } from './modules/schedule-preview.js';
@@ -22,10 +22,12 @@ import { renderHours } from './modules/hours.js';
 import { initFeedback } from './modules/feedback.js?v=2';
 import { initMobileNav } from './modules/nav.js';
 import { markCurrentSection } from './modules/sections.js?v=2';
-import { initAccountLink } from './modules/account-link.js';
+import { initAccountLink } from './modules/account-link.js?v=2';
 import { initTheme } from './modules/theme.js';
 import { initReveal } from './modules/reveal.js';
 import { initTicketPage } from './modules/ticket-page.js';
+import { initShopPage } from './modules/shop-page.js';
+import { initOfferPage } from './modules/offer-page.js';
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -42,6 +44,8 @@ async function bootstrap() {
   initMobileNav($('.burger'), $('#drawer'));
   initTheme([...document.querySelectorAll('[data-theme-toggle]')]);
   on('#ticketRoot', initTicketPage);
+  on('#shopRoot', (root) => initShopPage({ root, tabs: $('#shopTabs'), modal: $('#shopModal') }));
+  on('#offerLegal', initOfferPage);
 
   const data = await getSiteData();
   const today = cityNow(data.tzOffsetHours);

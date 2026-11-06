@@ -11,9 +11,10 @@
  * /ticket?id=… — подтверждение оплаты приходит не мгновенно.
  */
 
-import { visitApi, accountApi } from '../services/api.js?v=3';
+import { visitApi, accountApi } from '../services/api.js?v=4';
 import { escapeHtml, formatPrice, plural } from '../utils/format.js';
 import { calcParkTotal } from '../utils/pricing.js';
+import { CONSENT_HTML } from '../utils/plans.js';
 import { bindCopyButtons, kaspiDisabledHtml, kaspiPayHtml, kaspiWaitingHtml, pollUntilSettled } from './kaspi-pay.js';
 import { rememberTicket, ticketUrl } from './ticket-page.js';
 
@@ -67,7 +68,7 @@ export function initVisitCheckout({ modal, park, preload = true }) {
       </div>
       <label class="vc-consent">
         <input name="consent" type="checkbox" required>
-        <span>Согласен(на) с <a href="/rules" target="_blank" rel="noopener">правилами аквапарка</a> и оплатой визита</span>
+        <span>${CONSENT_HTML}</span>
       </label>
       <span class="field__error" data-error="consent"></span>`;
   }
@@ -230,7 +231,7 @@ export function initVisitCheckout({ modal, park, preload = true }) {
     // Сначала локальная проверка — мгновенная подсказка без запросов
     const errors = {};
     if (!EMAIL_RE.test(contact.email)) errors.email = 'Укажите почту в формате name@mail.kz';
-    if (!payload.consent) errors.consent = 'Без согласия купить билеты нельзя';
+    if (!payload.consent) errors.consent = 'Без согласия с условиями оплатить нельзя';
     if (setErrors(form, errors)) {
       form.elements[Object.keys(errors)[0]].focus();
       return;
