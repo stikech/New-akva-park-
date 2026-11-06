@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/assets/css/tokens.css">
-  <link rel="stylesheet" href="/admin/admin.css?v=2">
-  <script type="module" src="/admin/admin.js?v=3"></script>
+  <link rel="stylesheet" href="/admin/admin.css?v=3">
+  <script type="module" src="/admin/admin.js?v=4"></script>
 </head>
 <body>
   <header class="top">
@@ -21,6 +21,7 @@
         <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#1AA3C8"/><path d="M5 19c3-2 5-2 8 0s5 2 8 0 5-2 6-1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M16 6v9M12 8v5M20 8v5" stroke="#FFC83A" stroke-width="2.4" stroke-linecap="round"/></svg>
         <span>Нептун <small>админка</small></span>
       </a>
+      <span class="who" id="who" hidden></span>
       <button class="ghost" id="logout" type="button" hidden>Выйти</button>
     </div>
   </header>
@@ -28,9 +29,9 @@
   <main class="wrap">
     <section class="card login" id="loginView" hidden>
       <h1>Вход</h1>
-      <p class="muted">Введите токен администратора — значение переменной <code>ADMIN_TOKEN</code> на сервере.</p>
+      <p class="muted">Для сотрудников аквапарка. Введите свой пароль (выдаёт администратор) или пароль администратора — <code>ADMIN_TOKEN</code>.</p>
       <form id="loginForm" autocomplete="off">
-        <label for="token">Токен</label>
+        <label for="token">Пароль</label>
         <input id="token" name="token" type="password" required autocomplete="current-password">
         <p class="error" id="loginError" role="alert"></p>
         <button class="btn" type="submit">Войти</button>
@@ -39,15 +40,17 @@
 
     <nav class="switch" id="switch" hidden aria-label="Разделы админки">
       <button type="button" data-view="payments" aria-pressed="true">Оплаты <span class="count" id="paymentsCount" hidden></span></button>
-      <button type="button" data-view="list" aria-pressed="false">Отзывы</button>
+      <button type="button" data-view="orders" aria-pressed="false">Заказы</button>
+      <button type="button" data-view="classes" aria-pressed="false">Занятия</button>
       <button type="button" data-view="users" aria-pressed="false">Клиенты и абонементы</button>
-      <button type="button" data-view="visits" aria-pressed="false">Билеты</button>
+      <button type="button" data-view="visits" aria-pressed="false">Билеты (старые)</button>
+      <button type="button" data-view="list" aria-pressed="false">Отзывы</button>
     </nav>
 
     <section id="paymentsView" hidden>
       <div class="head">
         <div>
-          <h1>Оплаты Kaspi</h1>
+          <h1>Оплаты</h1>
           <p class="muted" id="paymentsSummary">Загружаем…</p>
         </div>
         <div class="tools">
@@ -56,15 +59,59 @@
         </div>
       </div>
       <div class="card status" id="serverStatus"></div>
-      <p class="muted howto">Клиент переводит сумму на Kaspi с кодом заказа в комментарии и жмёт «Я оплатил».
-        Найдите перевод с этим кодом и суммой в Kaspi Business / Kaspi.kz → «Подтвердить»: клиенту откроется чек,
-        абонемент выдастся сам. Перевода нет — «Отклонить».</p>
+      <p class="muted howto">Клиент переводит сумму на карту или Kaspi с кодом заказа в комментарии и жмёт «Я оплатил».
+        Найдите перевод с этим кодом и суммой в приложении банка → «Подтвердить»: клиенту откроется чек,
+        абонемент выдастся сам. Перевода нет — «Отклонить». Оплаты картой на сайте подтверждаются автоматически.
+        Клиент платит на кассе — найдите заказ по коду в разделе «Заказы» и подтвердите там.</p>
       <p class="error" id="paymentsError" role="alert"></p>
       <ol class="feed" id="paymentFeed" aria-live="polite"></ol>
       <div class="empty card" id="paymentsEmpty" hidden>
         <p><strong>Нет оплат, ожидающих проверки.</strong></p>
         <p class="muted">Когда клиент нажмёт «Я оплатил», заказ появится здесь (и придёт в Telegram, если он настроен).</p>
       </div>
+    </section>
+
+    <section id="ordersView" hidden>
+      <div class="head">
+        <div>
+          <h1>Заказы с сайта</h1>
+          <p class="muted" id="ordersSummary">Загружаем…</p>
+          <p class="muted">Корзина: билеты, бассейн, фитнес, SPA, абонементы, занятия. Клиент называет код NP-… — найдите его и нажмите «Выдать / отметить вход».</p>
+        </div>
+        <div class="tools">
+          <input id="orderSearch" type="search" placeholder="Код NP-…, телефон, имя" aria-label="Поиск заказа">
+          <select id="orderFilter" aria-label="Статус">
+            <option value="all">Все</option>
+            <option value="pending">Ждут оплаты</option>
+            <option value="paid">Оплачены, не выданы</option>
+            <option value="used">Выданы</option>
+            <option value="closed">Отменены и истёкшие</option>
+          </select>
+          <button class="ghost" id="ordersRefresh" type="button">Обновить</button>
+        </div>
+      </div>
+      <p class="error" id="ordersError" role="alert"></p>
+      <ol class="feed" id="orderFeed" aria-live="polite"></ol>
+      <div class="empty card" id="ordersEmpty" hidden><p><strong>Заказов нет.</strong></p></div>
+    </section>
+
+    <section id="classesView" hidden>
+      <div class="head">
+        <div>
+          <h1>Записи на занятия</h1>
+          <p class="muted" id="classesSummary">Загружаем…</p>
+        </div>
+        <div class="tools daynav">
+          <button class="ghost" type="button" data-day="-1" aria-label="Предыдущий день">←</button>
+          <input id="classesDate" type="date" aria-label="Дата">
+          <button class="ghost" type="button" data-day="1" aria-label="Следующий день">→</button>
+          <button class="ghost" type="button" id="classesToday">Сегодня</button>
+        </div>
+      </div>
+      <p class="muted howto">Отмечайте, кто пришёл. «Разово» — занятие без абонемента: если не оплачено онлайн, возьмите оплату на ресепшене.
+        Позвонили по телефону — запишите клиента кнопкой «+ Записать» у нужного занятия.</p>
+      <p class="error" id="classesError" role="alert"></p>
+      <div id="classesDay" class="slots"></div>
     </section>
 
     <section id="listView" hidden>

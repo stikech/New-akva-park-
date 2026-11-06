@@ -9,8 +9,10 @@ import { sendFeedback } from '../services/api.js?v=4';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Проверка полей. Возвращает { field: сообщение } для невалидных полей. */
-export function validateFeedback({ name, email, message }) {
+export function validateFeedback({ name, email, message, consent }) {
   const errors = {};
+  // Имя и почта — персональные данные: без согласия на обработку отзыв не принимаем.
+  if (consent !== true) errors.consent = 'Нужно согласие на обработку персональных данных';
   if (!name.trim()) errors.name = 'Укажите имя';
   if (email.trim() && !EMAIL_RE.test(email.trim())) errors.email = 'Проверьте адрес почты';
   if (message.trim().length < 5) errors.message = 'Напишите отзыв — хотя бы пару слов';
@@ -25,7 +27,7 @@ export function initFeedback(form, { fallbackPhone }) {
     form.querySelectorAll('[data-error]').forEach((el) => {
       const field = el.dataset.error;
       el.textContent = errors[field] ?? '';
-      form.elements[field].setAttribute('aria-invalid', String(Boolean(errors[field])));
+      form.elements[field]?.setAttribute('aria-invalid', String(Boolean(errors[field])));
     });
   }
 
@@ -41,6 +43,7 @@ export function initFeedback(form, { fallbackPhone }) {
       email: form.elements.email.value,
       message: form.elements.message.value,
       website: form.elements.website.value, // honeypot: заполняют только боты
+      consent: form.elements.consent.checked,
     };
 
     const errors = validateFeedback(values);

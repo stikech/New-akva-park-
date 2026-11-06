@@ -22,6 +22,7 @@ export function parseFeedback(body) {
     email: body.email ?? '',
     message: body.message,
     website: body.website ?? '',
+    consent: body.consent,
   };
 
   const typeErrors = {};

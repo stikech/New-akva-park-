@@ -20,9 +20,9 @@ test('initials', () => {
 });
 
 test('validateFeedback', () => {
-  assert.deepEqual(validateFeedback({ name: 'Аня', email: '', message: 'Всё отлично' }), {});
+  assert.deepEqual(validateFeedback({ name: 'Аня', email: '', message: 'Всё отлично', consent: true }), {});
   const errors = validateFeedback({ name: ' ', email: 'not-an-email', message: 'ок' });
-  assert.deepEqual(Object.keys(errors).sort(), ['email', 'message', 'name']);
+  assert.deepEqual(Object.keys(errors).sort(), ['consent', 'email', 'message', 'name']);
 });
 
 test('formatPrice — неразрывные пробелы между разрядами и перед знаком тенге', () => {

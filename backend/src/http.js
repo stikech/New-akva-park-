@@ -11,17 +11,20 @@ export class HttpError extends Error {
 /**
  * CSP под текущий фронтенд: Google Fonts, Open-Meteo для погоды.
  * 'unsafe-inline' — только для стилей: slides.js задаёт цвет трассы через style="--c: …".
+ * TipTop Pay: скрипт шифрования карты (checkout.js) и его запросы; form-action https: —
+ * шаг 3-D Secure отправляет форму на страницу банка покупателя (адрес у каждого банка свой).
  */
 const CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' https://checkout.tiptoppay.kz",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data:",
-  "connect-src 'self' https://api.open-meteo.com",
+  "connect-src 'self' https://api.open-meteo.com https://*.tiptoppay.kz",
+  "frame-src https://*.tiptoppay.kz",
   "frame-ancestors 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https:",
 ].join('; ');
 
 export const SECURITY_HEADERS = {

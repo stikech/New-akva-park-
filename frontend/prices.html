@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Цены и билеты · Аквапарк «Нептун»</title>
-  <meta name="description" content="Цены на билеты в аквапарк «Нептун» и плавательный бассейн. Калькулятор стоимости и покупка онлайн через Kaspi.">
+  <meta name="description" content="Цены на билеты в аквапарк «Нептун» и плавательный бассейн. Калькулятор стоимости и покупка онлайн картой или переводом.">
   <meta name="theme-color" content="#FFFFFF">
   <script src="/assets/js/theme-boot.js?v=1"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/assets/css/main.css?v=9">
+  <link rel="stylesheet" href="/assets/css/main.css?v=10">
 
-  <script type="module" src="/assets/js/main.js?v=8"></script>
+  <script type="module" src="/assets/js/main.js?v=9"></script>
 </head>
 <body>
 
@@ -88,7 +88,7 @@
   <div class="page-head">
     <div class="wrap">
       <h1 class="page-title">Цены и билеты</h1>
-      <p class="page-lead">Тарифы аквапарка и бассейна, калькулятор визита и покупка билетов онлайн с оплатой через Kaspi.</p>
+      <p class="page-lead">Тарифы аквапарка и бассейна, калькулятор визита и покупка билетов онлайн — картой или переводом.</p>
     </div>
   </div>
 
@@ -147,8 +147,16 @@
             </div>
           </div>
           <div class="total"><span>Итого</span><b data-total>—</b></div>
-          <button class="btn primary btn--block calc__buy" type="button" data-visit-buy data-i18n="calcBuy">Купить билеты</button>
-          <p class="note" data-i18n="calcNote">Оплата переводом Kaspi — код для входа придёт сразу после подтверждения.</p>
+          <div class="calc-bar" data-calc-bar>
+            <div class="calc-bar__track"><span class="calc-bar__adult"></span></div>
+            <div class="calc-bar__legend"><span data-part="adult"></span><span data-part="child"></span></div>
+          </div>
+          <p class="calc-hint" data-calc-hint></p>
+          <button class="btn primary btn--block calc__buy" type="button" data-calc-add>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 4h2.2l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.2L21 8H6.2"/></svg>
+            <span data-i18n="calcBuy">В корзину</span>
+          </button>
+          <p class="note" data-i18n="calcNote">Дату визита выберете при оформлении. Оплата картой или переводом — код для входа сразу после оплаты.</p>
         </div>
       </div>
 
@@ -189,11 +197,6 @@
   </div>
 </footer>
 
-<!-- Покупка билетов (калькулятор → visit-checkout.js) -->
-<div class="visit-modal" id="visitModal" hidden>
-  <div class="visit-modal__overlay" data-visit-close></div>
-  <div class="visit-modal__card" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle"></div>
-</div>
 
 
 </body>

@@ -45,11 +45,11 @@ export async function getOutsideTemperature({ lat, lon }, { timeoutMs = 5000 } =
  * Отправка отзыва: POST /api/feedback (docs/api-contract.md).
  * Если бэкенд недоступен, запрос падает — UI показывает телефон для связи.
  */
-export async function sendFeedback({ name, email, message, website }) {
+export async function sendFeedback({ name, email, message, website, consent }) {
   return fetchJson(`${API_BASE}/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name.trim(), email: email.trim() || null, message: message.trim(), website }),
+    body: JSON.stringify({ name: name.trim(), email: email.trim() || null, message: message.trim(), website, consent }),
   });
 }
 
@@ -114,10 +114,25 @@ export const shopApi = {
 };
 
 export const scheduleApi = {
-  schedule: (days = 7) => accountRequest('GET', `/schedule?days=${days}`, undefined, { timeoutMs: 6000 }),
+  schedule: (days = 7) => accountRequest('GET', `/schedule?days=${days}`, undefined, { timeoutMs: 20_000 }),
   bookings: () => accountRequest('GET', '/bookings'),
-  book: (key) => accountRequest('POST', '/bookings', { key }),
+  /** extra: { consent, guest: { name, phone } } — для разового занятия и записи без кабинета. */
+  book: (key, extra = {}) => accountRequest('POST', '/bookings', { key, ...extra }),
   cancel: (key) => accountRequest('DELETE', `/bookings/${key}`, {}),
+  cancelGuest: (id, phone) => accountRequest('POST', `/bookings/${id}/cancel`, { phone }),
+};
+
+/**
+ * Корзина и оплата (backend/src/checkout.js). Ключ идемпотентности передаёт страница:
+ * один ключ на одну корзину, чтобы повторное нажатие не создало второй заказ.
+ */
+export const checkoutApi = {
+  options: () => accountRequest('GET', '/checkout/options', undefined, { timeoutMs: 20_000 }),
+  create: (payload, idempotencyKey) => accountRequest('POST', '/checkout', payload, { idempotencyKey, timeoutMs: 20_000 }),
+  order: (id) => accountRequest('GET', `/checkout/${id}`),
+  mine: () => accountRequest('GET', '/checkout/mine'),
+  payCard: (id, payload) => accountRequest('POST', `/checkout/${id}/card`, payload, { timeoutMs: 40_000 }),
+  claim: (id, method) => accountRequest('POST', `/checkout/${id}/claim`, { method }),
 };
 
 /**

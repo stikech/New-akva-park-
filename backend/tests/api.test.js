@@ -42,7 +42,7 @@ const postFeedback = (base, body, headers = {}) =>
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
 
-const valid = { name: 'Аня', email: 'anya@example.com', message: 'Очень понравились горки!', website: '' };
+const valid = { name: 'Аня', email: 'anya@example.com', message: 'Очень понравились горки!', website: '', consent: true };
 
 describe('API', () => {
   let srv;
@@ -77,7 +77,7 @@ describe('API', () => {
     const res = await postFeedback(srv.base, { name: ' ', email: 'нет', message: 'ок', website: '' });
     assert.equal(res.status, 422);
     const { errors } = await res.json();
-    assert.deepEqual(Object.keys(errors).sort(), ['email', 'message', 'name']);
+    assert.deepEqual(Object.keys(errors).sort(), ['consent', 'email', 'message', 'name']);
   });
 
   test('POST /api/feedback: honeypot → 200 и ничего не сохраняется', async () => {
@@ -188,7 +188,7 @@ describe('модули', () => {
     assert.equal(parseFeedback([]).ok, false);
     assert.deepEqual(parseFeedback({ ...valid, name: 42 }).errors, { name: 'Ожидается строка' });
     assert.ok(parseFeedback({ ...valid, name: 'a'.repeat(81) }).errors.name);
-    const ok = parseFeedback({ name: 'Ли', email: null, message: 'Хорошо было', website: '' });
+    const ok = parseFeedback({ name: 'Ли', email: null, message: 'Хорошо было', website: '', consent: true });
     assert.equal(ok.ok, true);
     assert.equal(ok.value.email, null);
     assert.equal(ok.isBot, false);

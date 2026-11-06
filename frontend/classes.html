@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/assets/css/main.css?v=9">
+  <link rel="stylesheet" href="/assets/css/main.css?v=10">
 
-  <script type="module" src="/assets/js/main.js?v=8"></script>
+  <script type="module" src="/assets/js/main.js?v=9"></script>
 </head>
 <body>
 
@@ -88,24 +88,15 @@
   <div class="page-head">
     <div class="wrap">
       <h1 class="page-title">Занятия</h1>
-      <p class="page-lead">Расписание групповых занятий на неделю. Записаться можно в личном кабинете.</p>
+      <p class="page-lead">Расписание на две недели со свободными местами. Запишитесь в пару кликов — с абонементом или разово, даже без регистрации.</p>
     </div>
   </div>
 
-  <!-- ===== Занятия: расписание и запись в кабинете ===== -->
-  <section id="classes" aria-labelledby="classes-title">
+  <!-- ===== Занятия: живое расписание и запись (modules/classes-page.js) ===== -->
+  <section id="classes" class="classes" aria-label="Расписание и запись">
     <div class="wrap">
-      <div class="head-row">
-        <div>
-          <h2 id="classes-title" data-i18n="classesTitle">Расписание занятий</h2>
-          <p class="lead" data-i18n="classesLead">Плавание, аквааэробика, кроссфит, единоборства, групповые и детские программы. Свободные места, ваша запись и отмена не позднее, чем за час до занятия, — в личном кабинете.</p>
-        </div>
-        <a class="btn primary classes-cta" href="/account#schedule"><span data-i18n="classesCta">Записаться в кабинете</span></a>
-      </div>
-
-      <div class="classes-preview" id="classesPreview" aria-label="Занятия недели"><!-- рендерит modules/schedule-preview.js --></div>
-
-      <p class="note" data-i18n="classesNote">Расписание примерное. Точные дни, время и свободные места — в личном кабинете; изменения уточняйте на ресепшене.</p>
+      <div id="classesBooking"></div>
+      <p class="note" data-i18n="classesNote">Расписание может меняться — изменения уточняйте на ресепшене: +7 7152 33-61-41.</p>
     </div>
   </section>
 
@@ -127,6 +118,12 @@
     <span>ул. Юрия Медведева, 41</span>
   </div>
 </footer>
+
+<!-- Запись на занятие (classes-page.js) -->
+<div class="visit-modal" id="classModal" hidden>
+  <div class="visit-modal__overlay" data-visit-close></div>
+  <div class="visit-modal__card" role="dialog" aria-modal="true" aria-labelledby="classModalTitle"></div>
+</div>
 
 </body>
 </html>

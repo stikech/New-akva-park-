@@ -1,5 +1,6 @@
 /**
- * Админка: отзывы и клиенты личного кабинета (абонементы, посещения). Токен хранится только на время вкладки (sessionStorage).
+ * Админка для сотрудников: оплаты, заказы корзины, записи на занятия, клиенты и абонементы, отзывы.
+ * Вход — пароль сотрудника (STAFF_LOGINS) или администратора (ADMIN_TOKEN); хранится только на время вкладки (sessionStorage).
  * Данные из API выводятся через textContent — без innerHTML.
  */
 
@@ -19,7 +20,10 @@ let visitItems = [];
 let catalog = [];
 let today = '';
 let paymentItems = []; // ожидают подтверждения: заказы абонементов и билеты
-let current = 'payments'; // открытый раздел: payments | list (отзывы) | users (клиенты) | visits (билеты)
+let current = 'payments'; // открытый раздел: payments | orders | classes | list (отзывы) | users (клиенты) | visits (билеты)
+let orderItems = []; // заказы корзины (/api/admin/checkout)
+let classesDate = '';
+const VIEWS = ['list', 'users', 'visits', 'payments', 'orders', 'classes'];
 
 const dateFmt = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -39,12 +43,10 @@ function plural(n, [one, few, many]) {
 function show(view) {
   if (view !== 'login') current = view;
   $('loginView').hidden = view !== 'login';
-  $('listView').hidden = view !== 'list';
-  $('usersView').hidden = view !== 'users';
-  $('visitsView').hidden = view !== 'visits';
-  $('paymentsView').hidden = view !== 'payments';
+  VIEWS.forEach((v) => { $(`${v}View`).hidden = view !== v; });
   $('switch').hidden = view === 'login';
   $('logout').hidden = view === 'login';
+  $('who').hidden = view === 'login';
   $('switch').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
 }
 
@@ -101,13 +103,14 @@ async function load() {
     $('summary').textContent = `${data.total} ${plural(data.total, ['отзыв', 'отзыва', 'отзывов'])} · ${notif}`;
     show(current);
     render();
-    if (current === 'payments' && !paymentItems.length) loadPayments();
+    api('/api/admin/me').then((me) => { $('who').textContent = `${me.name}${me.role === 'admin' ? ' · админ' : ''}`; }).catch(() => {});
+    openView(current);
   } catch (error) {
     if (error.status === 401) {
       storage.clear();
       token = null;
       show('login');
-      $('loginError').textContent = 'Неверный токен';
+      $('loginError').textContent = 'Неверный пароль';
       return;
     }
     if (error.status === 503 || error.status === 429) {
@@ -324,8 +327,12 @@ async function loadStatus() {
       span.append(`${label}: `, b);
       return span;
     };
+    const m = s.methods ?? {};
     box.replaceChildren(
-      item('Kaspi', s.payment.enabled ? `${s.payment.phone} (${s.payment.receiver})` : 'номер не задан — онлайн-оплата выключена', s.payment.enabled),
+      item('Карта на сайте', m.card?.enabled ? (m.card.provider === 'demo' ? 'ДЕМО-режим' : 'TipTop Pay подключён') : 'не подключена (нужны ключи TipTop Pay)', m.card?.enabled),
+      item('Перевод на карту', m.transfer?.enabled ? m.transfer.number : 'номер карты не задан', m.transfer?.enabled),
+      item('Kaspi', s.payment.enabled ? `${s.payment.phone} (${s.payment.receiver})` : 'номер не задан', s.payment.enabled),
+      item('Сотрудники', s.staff?.length ? s.staff.join(', ') : 'только администратор', true),
       item('Telegram', s.telegram === 'on' ? 'уведомления включены' : 'выключен', s.telegram === 'on'),
       item('Хранение данных', s.backup === 'upstash' ? 'облачная копия Upstash' : 'только диск сервера', s.backup === 'upstash'),
     );
@@ -339,9 +346,15 @@ async function loadPayments() {
   $('paymentsSummary').textContent = 'Загружаем…';
   loadStatus();
   try {
-    const [orders, visits] = await Promise.all([api('/api/admin/orders'), api('/api/admin/visits')]);
+    const [orders, visits, checkout] = await Promise.all([api('/api/admin/orders'), api('/api/admin/visits'), api('/api/admin/checkout')]);
     visitItems = visits.items;
+    orderItems = checkout.items;
     paymentItems = [
+      // Заказы корзины: в «Оплаты» попадают только те, где клиент сообщил о переводе.
+      ...checkout.items.filter((o) => o.status === 'pending' && o.claim).map((o) => ({
+        ...o, kind: 'checkout', payCode: o.code, price: o.total, firstName: o.contact.name, email: o.contact.email,
+        phone: fmtPhone(o.contact.phone), kaspi: { claimedAt: o.claim.at },
+      })),
       ...orders.items.filter((o) => o.status === 'pending').map((o) => ({ ...o, kind: 'order' })),
       ...visits.items.filter((v) => v.status === 'pending').map((v) => ({ ...v, kind: 'visit' })),
     ].sort((a, b) => Number(Boolean(b.kaspi?.claimedAt)) - Number(Boolean(a.kaspi?.claimedAt))
@@ -370,11 +383,13 @@ function renderPayments() {
 
 function renderPayment(p) {
   const node = $('paymentTpl').content.firstElementChild.cloneNode(true);
-  const base = p.kind === 'order' ? '/api/admin/orders' : '/api/admin/visits';
+  const base = { order: '/api/admin/orders', visit: '/api/admin/visits', checkout: '/api/admin/checkout' }[p.kind];
   node.querySelector('.payment__codevalue').textContent = p.payCode ?? p.id.slice(0, 8);
-  node.querySelector('.payment__kind').textContent = p.kind === 'order'
-    ? `Абонемент: ${p.title.split(' · ').slice(1).join(' · ') || p.title}`
-    : `Билеты: ${visitorsLabel(p)}`;
+  node.querySelector('.payment__kind').textContent = p.kind === 'checkout'
+    ? `${p.claim.method === 'kaspi' ? 'Kaspi' : 'Перевод на карту'}: ${linesSummary(p.lines)}`
+    : p.kind === 'order'
+      ? `Абонемент: ${p.title.split(' · ').slice(1).join(' · ') || p.title}`
+      : `Билеты: ${visitorsLabel(p)}`;
   node.querySelector('.item__name').textContent = p.firstName || 'Гость';
   node.querySelector('.visit__contact').textContent = [p.email, p.phone].filter(Boolean).join(' · ') || '—';
   node.querySelector('.visit__price').textContent = `${p.price.toLocaleString('ru-RU')} ₸`;
@@ -440,6 +455,185 @@ $('loginForm').addEventListener('submit', (event) => {
   load();
 });
 
+function openView(view) {
+  if (view === 'users') loadUsers();
+  if (view === 'visits') loadVisits();
+  if (view === 'payments') loadPayments();
+  if (view === 'orders') loadOrders();
+  if (view === 'classes') loadClasses();
+}
+
+// ---------- заказы корзины ----------
+
+const ORDER_STATUS_LABEL = { pending: 'Ждёт оплаты', paid: 'Оплачен', cancelled: 'Отменён', expired: 'Истёк' };
+const METHOD_LABEL = { card: 'картой на сайте', transfer: 'переводом на карту', kaspi: 'Kaspi', desk: 'на кассе' };
+
+function linesSummary(lines) {
+  return lines.map((l) => `${l.title.replace(/^.*? · /, '')}${l.qty > 1 ? ` ×${l.qty}` : ''}`).join(', ');
+}
+
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
+  return node;
+}
+
+async function loadOrders() {
+  $('ordersError').textContent = '';
+  $('ordersSummary').textContent = 'Загружаем…';
+  try {
+    const data = await api('/api/admin/checkout');
+    orderItems = data.items;
+    today = data.today;
+    const paid = orderItems.filter((o) => o.status === 'paid');
+    const paidToday = paid.filter((o) => o.paidAt?.slice(0, 10) === today);
+    $('ordersSummary').textContent = `${orderItems.length} ${plural(orderItems.length, ['заказ', 'заказа', 'заказов'])} · оплачено сегодня: ${paidToday.length} на ${paidToday.reduce((s, o) => s + o.total, 0).toLocaleString('ru-RU')} ₸ · всего оплачено: ${paid.reduce((s, o) => s + o.total, 0).toLocaleString('ru-RU')} ₸`;
+    renderOrders();
+  } catch (error) {
+    if (error.status === 401) return load();
+    $('ordersSummary').textContent = '';
+    $('ordersError').textContent = `Не удалось загрузить заказы: ${error.message}`;
+  }
+}
+
+function renderOrders() {
+  const q = $('orderSearch').value.trim().toLowerCase();
+  const digits = q.replace(/\D/g, '');
+  const filter = $('orderFilter').value;
+  const visible = orderItems.filter((o) => {
+    if (filter === 'pending' && o.status !== 'pending') return false;
+    if (filter === 'paid' && !(o.status === 'paid' && !o.usedAt)) return false;
+    if (filter === 'used' && !o.usedAt) return false;
+    if (filter === 'closed' && !['cancelled', 'expired'].includes(o.status)) return false;
+    if (!q) return true;
+    return [o.code, o.contact.name, o.contact.email].some((s) => String(s ?? '').toLowerCase().includes(q))
+      || (digits.length >= 3 && (o.contact.phone ?? '').includes(digits));
+  });
+  $('orderFeed').replaceChildren(...visible.map(renderOrder));
+  $('ordersEmpty').hidden = visible.length > 0;
+}
+
+function renderOrder(o) {
+  const error = el('p', { className: 'error user__error', role: 'alert' });
+  const pill = el('span', { className: 'pill', textContent: o.usedAt ? 'Выдан' : o.status === 'pending' && o.claim ? 'Проверить перевод' : ORDER_STATUS_LABEL[o.status] ?? o.status });
+  pill.dataset.code = o.usedAt ? 'used' : o.status === 'pending' && o.claim ? 'claimed' : o.status;
+  const actions = el('div', { className: 'user__actions' });
+  const reload = () => loadOrders();
+  if (o.status === 'paid' && !o.usedAt) {
+    actions.append(actionButton('Выдать / отметить вход', 'btn', () => api(`/api/admin/checkout/${o.id}/redeem`, { method: 'POST', body: {} }), error, reload));
+  }
+  if (o.status === 'pending' || o.status === 'expired') {
+    actions.append(actionButton(o.claim ? 'Подтвердить перевод' : 'Оплачено на кассе', 'btn', () => api(`/api/admin/checkout/${o.id}/confirm`, { method: 'POST', body: {} }), error, reload));
+    const reject = el('button', { type: 'button', className: 'ghost danger-text', textContent: 'Отклонить' });
+    reject.addEventListener('click', () => {
+      const reason = prompt('Причина отказа (её увидит клиент):', 'Перевод с этим кодом не найден');
+      if (reason === null) return;
+      runAction(reject, () => api(`/api/admin/checkout/${o.id}/reject`, { method: 'POST', body: { reason } }), error, reload);
+    });
+    actions.append(reject);
+  }
+  const details = [
+    o.visitDate ? `визит ${fmtDate(o.visitDate)}` : null,
+    o.paidAt ? `оплачен ${visitFmt.format(new Date(o.paidAt))} ${METHOD_LABEL[o.method] ?? ''}${o.card?.last4 ? ` •••• ${o.card.last4}` : ''}${o.paidBy && !['tiptoppay', 'demo'].includes(o.paidBy) ? ` (${o.paidBy})` : ''}` : null,
+    o.claim && o.status === 'pending' ? `«Я оплатил» ${visitFmt.format(new Date(o.claim.at))}, ${METHOD_LABEL[o.claim.method]}` : null,
+    o.usedAt ? `выдан ${visitFmt.format(new Date(o.usedAt))}${o.usedBy ? ` (${o.usedBy})` : ''}` : null,
+    o.rejectReason ? `отклонён: ${o.rejectReason}` : null,
+    o.user ? `кабинет: ${o.user.email}` : null,
+  ].filter(Boolean).join(' · ');
+  return el('li', { className: 'card item payment' },
+    el('div', { className: 'item__meta' },
+      el('div', { className: 'payment__code' }, el('b', { className: 'payment__codevalue', textContent: o.code }), el('span', { className: 'payment__kind muted', textContent: `${o.lines.reduce((s, l) => s + l.qty, 0)} поз.` })),
+      el('div', {}, el('strong', { className: 'item__name', textContent: o.contact.name }), el('span', { className: 'visit__contact muted', textContent: [fmtPhone(o.contact.phone), o.contact.email].filter(Boolean).join(' · ') })),
+      el('div', { className: 'visit__right' }, el('span', { className: 'visit__price', textContent: `${o.total.toLocaleString('ru-RU')} ₸` }), pill,
+        el('time', { className: 'item__date', dateTime: o.createdAt, textContent: visitFmt.format(new Date(o.createdAt)) }))),
+    el('ul', { className: 'order__lines' }, ...o.lines.map((l) => el('li', { textContent: `${l.title} — ${l.option} × ${l.qty} = ${l.sum.toLocaleString('ru-RU')} ₸` }))),
+    details ? el('p', { className: 'visit__receipt muted', textContent: details }) : null,
+    actions, error);
+}
+
+// ---------- записи на занятия ----------
+
+function shiftDay(iso, n) {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+}
+
+async function loadClasses(date = classesDate) {
+  $('classesError').textContent = '';
+  $('classesSummary').textContent = 'Загружаем…';
+  try {
+    const data = await api(`/api/admin/bookings${date ? `?date=${date}` : ''}`);
+    classesDate = data.date;
+    today = data.today;
+    $('classesDate').value = data.date;
+    const attended = data.slots.reduce((s, x) => s + x.attended, 0);
+    const label = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${data.date}T00:00:00Z`));
+    $('classesSummary').textContent = `${label}${data.date === data.today ? ' (сегодня)' : ''} · ${data.slots.length} ${plural(data.slots.length, ['занятие', 'занятия', 'занятий'])} · записано: ${data.total} · пришли: ${attended}`;
+    $('classesDay').replaceChildren(...(data.slots.length ? data.slots.map(renderSlot) : [el('div', { className: 'empty card' }, el('p', {}, el('strong', { textContent: 'В этот день занятий нет.' })))]));
+  } catch (error) {
+    if (error.status === 401) return load();
+    $('classesSummary').textContent = '';
+    $('classesError').textContent = `Не удалось загрузить записи: ${error.message}`;
+  }
+}
+
+function renderSlot(slot) {
+  const error = el('p', { className: 'error user__error', role: 'alert' });
+  const reload = () => loadClasses();
+  const fill = el('span', { className: 'slot__fill' });
+  fill.style.width = `${Math.min(100, Math.round((slot.booked / slot.capacity) * 100))}%`;
+  const people = slot.items.map((b) => {
+    const cancelled = b.status === 'cancelled';
+    const tags = el('span', { className: 'slot__tags' },
+      el('span', { className: 'pill', textContent: b.payment === 'membership' ? 'абонемент' : b.paid ? 'разово, оплачено' : `разово, ${b.price ? `${b.price.toLocaleString('ru-RU')} ₸ ` : ''}на ресепшене` }),
+      b.account ? null : el('span', { className: 'pill', textContent: 'без кабинета' }));
+    tags.firstChild.dataset.code = b.payment === 'membership' || b.paid ? 'paid' : 'pending';
+    const row = el('li', { className: `person${cancelled ? ' person--cancelled' : ''}${b.attendedAt ? ' person--here' : ''}` },
+      el('label', { className: 'person__check' },
+        Object.assign(el('input', { type: 'checkbox', checked: Boolean(b.attendedAt), disabled: cancelled }), { title: 'Пришёл' }),
+        el('span', {}, el('b', { textContent: b.name }), el('small', { className: 'muted', textContent: [fmtPhone(b.phone), b.email].filter(Boolean).join(' · ') }))),
+      tags);
+    const box = row.querySelector('input');
+    box.addEventListener('change', () => runAction(box, () => api(`/api/admin/bookings/${b.id}/attend`, { method: 'POST', body: { attended: box.checked } }), error, reload));
+    if (cancelled) row.append(el('span', { className: 'muted person__note', textContent: `отменена${b.cancelledBy ? ` (${b.cancelledBy === 'client' || b.cancelledBy === 'guest' ? 'клиентом' : b.cancelledBy})` : ''}` }));
+    else {
+      const cancel = el('button', { type: 'button', className: 'ghost danger-text person__cancel', textContent: 'Отменить' });
+      cancel.addEventListener('click', () => {
+        if (!confirm(`Отменить запись: ${b.name}?`)) return;
+        runAction(cancel, () => api(`/api/admin/bookings/${b.id}/cancel`, { method: 'POST', body: {} }), error, reload);
+      });
+      row.append(cancel);
+    }
+    return row;
+  });
+
+  const form = el('form', { className: 'slot__add', hidden: true },
+    el('input', { name: 'name', placeholder: 'Имя клиента', required: true, maxLength: 80 }),
+    el('input', { name: 'phone', placeholder: '+7 7__ ___-__-__', type: 'tel', required: true }),
+    el('button', { className: 'btn', type: 'submit', textContent: 'Записать' }));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    runAction(form.querySelector('button'), () => api('/api/admin/bookings', { method: 'POST', body: { key: slot.key, name: form.elements.name.value, phone: form.elements.phone.value } }), error, reload);
+  });
+  const addBtn = el('button', { type: 'button', className: 'ghost', textContent: '+ Записать' });
+  addBtn.addEventListener('click', () => { form.hidden = !form.hidden; if (!form.hidden) form.elements.name.focus(); });
+
+  return el('article', { className: 'card slot' },
+    el('div', { className: 'slot__head' },
+      el('div', { className: 'slot__time' }, el('b', { textContent: slot.start }), el('small', { className: 'muted', textContent: `до ${slot.end}` })),
+      el('div', {}, el('strong', { textContent: slot.title }), el('span', { className: 'muted slot__room', textContent: slot.room })),
+      el('div', { className: 'slot__count' }, el('b', { textContent: `${slot.booked}/${slot.capacity}` }), el('small', { className: 'muted', textContent: `пришли ${slot.attended}` }))),
+    el('div', { className: 'slot__bar' }, fill),
+    people.length ? el('ul', { className: 'people' }, ...people) : el('p', { className: 'muted', textContent: 'Пока никто не записан.' }),
+    el('div', { className: 'user__actions' }, addBtn), form, error);
+}
+
+$('ordersRefresh').addEventListener('click', loadOrders);
+$('orderSearch').addEventListener('input', renderOrders);
+$('orderFilter').addEventListener('change', renderOrders);
+$('classesDate').addEventListener('change', (e) => loadClasses(e.target.value));
+$('classesToday').addEventListener('click', () => loadClasses(today));
+document.querySelectorAll('[data-day]').forEach((b) => b.addEventListener('click', () => loadClasses(shiftDay(classesDate || today, Number(b.dataset.day)))));
+
 $('logout').addEventListener('click', () => {
   storage.clear();
   token = null;
@@ -461,9 +655,7 @@ $('switch').addEventListener('click', (event) => {
   const btn = event.target.closest('button[data-view]');
   if (!btn) return;
   show(btn.dataset.view);
-  if (btn.dataset.view === 'users') loadUsers();
-  if (btn.dataset.view === 'visits') loadVisits();
-  if (btn.dataset.view === 'payments') loadPayments();
+  openView(btn.dataset.view);
 });
 $('search').addEventListener('input', render);
 $('exportCsv').addEventListener('click', exportCsv);

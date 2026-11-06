@@ -58,11 +58,16 @@ export function createBookingStore(dataDir, { now = () => Date.now() } = {}) {
       return out;
     },
 
-    /** Создаёт запись. Возвращает { booking, created } — created=false, если уже записан. */
-    create({ userId, slot, now: isoNow }) {
+    /**
+     * Создаёт запись. Возвращает { booking, created } — created=false, если уже записан.
+     * userId — клиент с кабинетом; guest { name, phone } — запись без регистрации.
+     * payment: 'membership' — по абонементу; 'single' — разовое занятие (оплата онлайн или на ресепшене).
+     */
+    create({ userId = null, guest = null, slot, payment = 'membership', price = null, by = null, now: isoNow }) {
       return mutate((s) => {
         const existing = s.bookings.find(
-          (b) => b.key === slot.key && b.userId === userId && b.status === 'booked',
+          (b) => b.key === slot.key && b.status === 'booked'
+            && (userId ? b.userId === userId : !b.userId && b.guest?.phone === guest?.phone),
         );
         if (existing) return { booking: existing, created: false };
         if (bookedCount(s, slot.key) >= slot.capacity) return { booking: null, created: false, full: true };
@@ -71,6 +76,13 @@ export function createBookingStore(dataDir, { now = () => Date.now() } = {}) {
           id: randomUUID(),
           key: slot.key,
           userId,
+          guest: userId ? null : guest,
+          payment,
+          price,
+          paidOrderId: null,
+          createdBy: by,
+          attendedAt: null,
+          attendedBy: null,
           date: slot.date,
           sessionId: slot.sessionId,
           title: slot.title,
@@ -105,21 +117,44 @@ export function createBookingStore(dataDir, { now = () => Date.now() } = {}) {
       return s.bookings.find((b) => b.id === id) ?? null;
     },
 
-    cancel(id) {
+    cancel(id, by = null) {
       const t = now();
       return mutate((s) => {
         const b = s.bookings.find((x) => x.id === id);
         if (!b) return null;
         b.status = 'cancelled';
         b.cancelledAt = new Date(t).toISOString();
+        b.cancelledBy = by;
         return b;
       });
     },
 
-    /** Администратор: записи на дату. */
-    async byDate(date) {
+    /** Разовое занятие оплачено заказом корзины. */
+    markPaid(id, orderId) {
+      return mutate((s) => {
+        const b = s.bookings.find((x) => x.id === id);
+        if (!b) return null;
+        b.paidOrderId = orderId;
+        return b;
+      });
+    },
+
+    /** Сотрудник отметил, пришёл ли клиент (attended=false снимает отметку). */
+    setAttended(id, attended, by) {
+      const t = now();
+      return mutate((s) => {
+        const b = s.bookings.find((x) => x.id === id);
+        if (!b || b.status !== 'booked') return null;
+        b.attendedAt = attended ? new Date(t).toISOString() : null;
+        b.attendedBy = attended ? by : null;
+        return b;
+      });
+    },
+
+    /** Администратор: записи на дату (с отменёнными — includeCancelled). */
+    async byDate(date, { includeCancelled = false } = {}) {
       const s = await load();
-      return s.bookings.filter((b) => b.date === date && b.status === 'booked')
+      return s.bookings.filter((b) => b.date === date && (includeCancelled || b.status === 'booked'))
         .sort((a, b) => a.start.localeCompare(b.start));
     },
   };

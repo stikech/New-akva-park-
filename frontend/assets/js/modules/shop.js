@@ -6,12 +6,16 @@
  * (GET /api/orders) — цены только из каталога, с фронта их никто не подменит.
  * Заказ создаётся с Idempotency-Key (api.js): повтор сети не создаст второй.
  * Абонемент выдаётся сразу после того, как администратор подтвердит перевод.
+ *
+ * Новые покупки идут через общую корзину (/checkout: карта, перевод на карту, Kaspi) —
+ * кнопка «Купить» кладёт тариф в корзину. Здесь остаются старые заказы и их оплата.
  */
 
 import { shopApi } from '../services/api.js?v=4';
 import { escapeHtml, formatPrice, plural } from '../utils/format.js';
 import { CONSENT_HTML, perVisit, planMeta, planTitle } from '../utils/plans.js';
 import { bindCopyButtons, kaspiDisabledHtml, kaspiPayHtml, kaspiWaitingHtml, pollUntilSettled } from './kaspi-pay.js';
+import { cart } from './cart.js?v=1';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -270,7 +274,10 @@ export function initShop({ root, getUser, refreshUser, goto }) {
     }
 
     root.innerHTML = catalogHtml();
-    $$('[data-buy]', root).forEach((btn) => btn.addEventListener('click', () => openPlanCheckout(btn)));
+    $$('[data-buy]', root).forEach((btn) => btn.addEventListener('click', () => {
+      cart.add(`plan:${btn.dataset.buy}`);
+      location.href = '/checkout';
+    }));
     $$('[data-pay-order]', root).forEach((btn) => btn.addEventListener('click', () => openOrderCheckout(btn.dataset.payOrder)));
   }
 

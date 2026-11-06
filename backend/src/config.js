@@ -26,6 +26,22 @@ function str(value) {
   return s || null;
 }
 
+function httpsUrl(value, fallback) {
+  const s = str(value);
+  return s && s.startsWith('https://') ? s : fallback;
+}
+
+/** «Имя:пароль;Имя2:пароль2» → [{ name, password }]. Пароли короче 8 символов отбрасываем. */
+export function parseStaff(value) {
+  return String(value ?? '').split(/[;\n]/).map((pair) => {
+    const i = pair.indexOf(':');
+    if (i < 1) return null;
+    const name = pair.slice(0, i).trim().slice(0, 40);
+    const password = pair.slice(i + 1).trim();
+    return name && password.length >= 8 ? { name, password } : null;
+  }).filter(Boolean);
+}
+
 export function readConfig(env = process.env) {
   return {
     port: int(env.PORT, 3000),
@@ -60,6 +76,31 @@ export function readConfig(env = process.env) {
       payLink: str(env.KASPI_PAY_LINK) ?? str(PAYMENT.kaspiPayLink),
       qr: str(env.KASPI_QR) ?? str(PAYMENT.kaspiQr),
     },
+
+    /** Перевод на банковскую карту: номер из backend/payment.config.js, переменные окружения важнее. */
+    cardTransfer: {
+      number: str(env.PAY_CARD_NUMBER) ?? str(PAYMENT.cardNumber),
+      bank: str(env.PAY_CARD_BANK) ?? str(PAYMENT.cardBank),
+      holder: str(env.PAY_CARD_HOLDER) ?? str(PAYMENT.cardHolder),
+    },
+
+    /**
+     * Оплата картой на сайте через TipTop Pay (tiptoppay.js). Секрет — только из окружения:
+     * репозиторий публичный.
+     */
+    tiptoppay: {
+      publicId: str(env.TIPTOPPAY_PUBLIC_ID) ?? str(PAYMENT.tiptoppayPublicId),
+      apiSecret: str(env.TIPTOPPAY_API_SECRET),
+      apiUrl: httpsUrl(env.TIPTOPPAY_API_URL, 'https://api.tiptoppay.kz'),
+      scriptUrl: httpsUrl(env.TIPTOPPAY_SCRIPT_URL, 'https://checkout.tiptoppay.kz/checkout.js'),
+    },
+
+    /**
+     * Входы сотрудников в /admin: STAFF_LOGINS="Анна:пароль-анны;Ержан:пароль-ержана".
+     * Каждый входит своим паролем, в журнале видно, кто подтвердил оплату или отметил приход.
+     * ADMIN_TOKEN остаётся паролем администратора.
+     */
+    staff: parseStaff(env.STAFF_LOGINS),
 
     /** Продавец в публичной оферте (/offer). */
     seller: {

@@ -212,3 +212,39 @@ input:focus, select:focus { border-color: var(--water); outline: none; }
 @media (max-width: 640px) {
   .payment .item__meta { grid-template-columns: auto 1fr; }
 }
+
+/* ---------- вошедший сотрудник ---------- */
+.top__inner .who { margin-left: auto; margin-right: 12px; color: var(--muted); font-size: 14px; }
+.tools select { width: auto; }
+
+/* ---------- заказы корзины ---------- */
+.order__lines { margin: 12px 0 0; padding-left: 18px; font-size: 14px; }
+.order__lines li { margin: 2px 0; }
+
+/* ---------- записи на занятия ---------- */
+.daynav input { width: auto; }
+.slots { display: grid; gap: 12px; }
+.slot { display: grid; gap: 12px; padding: 18px 20px; animation: rise .3s ease both; }
+.slot__head { display: grid; grid-template-columns: 70px 1fr auto; gap: 14px; align-items: center; }
+.slot__head > div { display: grid; gap: 2px; min-width: 0; }
+.slot__time b { font: 700 20px/1.1 Unbounded, sans-serif; }
+.slot__room { font-size: 13px; }
+.slot__count { justify-items: end; text-align: right; }
+.slot__count b { font: 700 18px Unbounded, sans-serif; }
+.slot__bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.slot__fill { display: block; height: 100%; border-radius: 999px; background: var(--water); }
+.people { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.person { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.person--here { background: color-mix(in srgb, var(--ok) 8%, var(--card)); border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
+.person--cancelled { opacity: .55; }
+.person--cancelled b { text-decoration: line-through; }
+.person__check { display: flex; align-items: center; gap: 12px; flex: 1 1 220px; min-width: 0; cursor: pointer; }
+.person__check input { width: 22px; height: 22px; flex: none; accent-color: var(--ok); }
+.person__check span { display: grid; min-width: 0; }
+.person__check small { font-size: 13px; overflow-wrap: anywhere; }
+.slot__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.person__cancel { padding: 6px 12px; font-size: 13px; }
+.person__note { font-size: 13px; }
+.slot__add { display: grid; gap: 8px; }
+@media (min-width: 700px) { .slot__add { grid-template-columns: 1fr 1fr auto; } }
+@media (max-width: 560px) { .slot__head { grid-template-columns: 56px 1fr; } .slot__count { grid-column: 1 / -1; justify-items: start; text-align: left; } }

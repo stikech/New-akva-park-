@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/assets/css/main.css?v=9">
+  <link rel="stylesheet" href="/assets/css/main.css?v=10">
 
-  <script type="module" src="/assets/js/main.js?v=8"></script>
+  <script type="module" src="/assets/js/main.js?v=9"></script>
 </head>
 <body>
 
@@ -142,6 +142,11 @@
             <label for="fb-website">Сайт</label>
             <input id="fb-website" name="website" type="text" tabindex="-1" autocomplete="off">
           </div>
+          <label class="acc-check field--wide feedback__consent">
+            <input name="consent" type="checkbox" required>
+            <span>Согласен(на) на обработку персональных данных (имя, почта) для ответа на отзыв — <a href="/offer#privacy" target="_blank" rel="noopener">подробнее</a></span>
+          </label>
+          <span class="field__error field--wide" data-error="consent"></span>
           <div class="feedback__actions">
             <button class="btn primary" type="submit" data-i18n="ctaSend">Отправить отзыв</button>
             <p class="feedback__status" data-status role="status"></p>

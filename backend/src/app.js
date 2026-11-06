@@ -11,12 +11,15 @@
  *   /api/auth/*, /api/account*, /api/admin/users|membership|visit — личный кабинет (accounts.js)
  *   /api/orders/*               — покупка и продление абонементов (payments.js)
  *   /api/bookings/*             — запись на занятия (bookings.js)
- *   /api/visits/*               — онлайн-билеты аквапарка из калькулятора (visits.js)
+ *   /api/visits/*               — онлайн-билеты аквапарка (прежний поток, visits.js)
+ *   /api/checkout/*             — корзина: заказ и оплата картой / переводом (checkout.js)
+ *   GET  /api/admin/me          — кто вошёл в админку (администратор или сотрудник)
  *   GET  /admin                 — страница администратора
  *   GET  /account[/раздел]      — личный кабинет: /account/overview, /account/shop…
  *   GET  /                      — главная: hero и плитки разделов
  *   GET  /prices, /rules, …     — разделы сайта, у каждого своя страница (frontend/<раздел>.html)
  *   GET  /ticket?id=…           — статус онлайн-билета и код для входа
+ *   GET  /checkout              — корзина, оформление и оплата заказа
  *   GET  /assets/*              — фронтенд
  */
 
@@ -37,9 +40,11 @@ import { createBookingRoutes } from './bookings.js';
 import { createVisitRoutes } from './visits.js';
 import { createVisitStore } from './visit-store.js';
 import { kaspiInfo } from './kaspi.js';
+import { createCheckoutRoutes, paymentMethods } from './checkout.js';
+import { createCheckoutStore } from './checkout-store.js';
 
 /** Разделы сайта — отдельные страницы frontend/<раздел>.html, на них ведут кнопки шапки. */
-const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'shop', 'ticket', 'offer'];
+const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'shop', 'ticket', 'offer', 'checkout'];
 const SITE_PAGES = new Map(SITE_SECTION_SLUGS.flatMap((s) => [[`/${s}`, `${s}.html`], [`/${s}/`, `${s}.html`]]));
 
 const sha256 = (s) => createHash('sha256').update(s).digest();
@@ -50,6 +55,8 @@ export function createApp({
   orders = createOrderStore(config.dataDir),
   bookings = createBookingStore(config.dataDir),
   visits = createVisitStore(config.dataDir),
+  checkout = createCheckoutStore(config.dataDir),
+  paymentGateway = null,
   journal = createAudit(config.dataDir),
   backup = { enabled: false },
   clock,
@@ -76,25 +83,38 @@ export function createApp({
   const visitRoutes = createVisitRoutes({
     config, visits, journal, accounts, requireUser, requireAdmin, notifier, log, ...extraClock,
   });
+  const checkoutRoutes = createCheckoutRoutes({
+    config, checkout, accounts, bookings, journal, requireAdmin, notifier, log, gateway: paymentGateway, ...extraClock,
+  });
 
-  function isAdmin(req) {
-    if (!config.adminToken) return false;
+  // Сравниваем хеши фиксированной длины — постоянное время независимо от длины ввода.
+  const sameSecret = (a, b) => timingSafeEqual(sha256(a), sha256(b));
+  const staffLogins = config.staff ?? [];
+
+  /** Кто вошёл: { name, role: 'admin' | 'staff' } или null. Пароль сотрудника — из STAFF_LOGINS. */
+  function whoIs(req) {
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-    // Сравниваем хеши фиксированной длины — постоянное время независимо от длины ввода.
-    return token !== '' && timingSafeEqual(sha256(token), sha256(config.adminToken));
+    if (!token) return null;
+    if (config.adminToken && sameSecret(token, config.adminToken)) return { name: 'Администратор', role: 'admin' };
+    // Проверяем все пароли без раннего выхода — время ответа не выдаёт, чей пароль ближе.
+    let found = null;
+    for (const s of staffLogins) if (sameSecret(token, s.password) && !found) found = { name: s.name, role: 'staff' };
+    return found;
   }
 
-  /** Бросает 503/401/429, если запрос не от администратора. */
+  /** Бросает 503/401/429, если запрос не от администратора или сотрудника. Возвращает, кто вошёл. */
   function requireAdmin(req) {
-    if (!config.adminToken) {
+    if (!config.adminToken && !staffLogins.length) {
       throw new HttpError(503, 'Админка не настроена: задайте переменную ADMIN_TOKEN');
     }
-    if (!isAdmin(req)) {
+    const who = whoIs(req);
+    if (!who) {
       const limit = adminFailLimiter.hit(clientIp(req, config.trustProxyHops));
       if (!limit.ok) throw new HttpError(429, 'Слишком много попыток. Попробуйте позже.');
-      throw new HttpError(401, 'Неверный токен');
+      throw new HttpError(401, 'Неверный пароль');
     }
+    return who;
   }
 
   const routes = {
@@ -106,11 +126,17 @@ export function createApp({
       sendJson(res, 200, kaspiInfo(config));
     },
 
+    'GET /api/admin/me': (req, res) => {
+      sendJson(res, 200, requireAdmin(req));
+    },
+
     'GET /api/admin/status': (req, res) => {
       requireAdmin(req);
       sendJson(res, 200, {
         uptimeSec: Math.round((Date.now() - startedAt) / 1000),
         payment: kaspiInfo(config),
+        methods: paymentMethods(config),
+        staff: staffLogins.map((s) => s.name),
         telegram: notifier?.enabled ? 'on' : 'off',
         backup: backup.enabled ? 'upstash' : 'off',
         demoAccounts: config.demoAccounts,
@@ -176,12 +202,13 @@ export function createApp({
     ...paymentRoutes.routes,
     ...bookingRoutes.routes,
     ...visitRoutes.routes,
+    ...checkoutRoutes.routes,
   };
 
   // Динамические маршруты с параметрами: /api/orders/:id, /api/bookings/:key.
   // Сегменты `:имя` передаются обработчику в params; расширять — по образцу payments.js.
   const dynamicRoutes = [];
-  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic]) {
+  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic, checkoutRoutes.dynamic]) {
     for (const [key, handler] of Object.entries(definition)) {
       const [method, pattern] = key.split(' ');
       dynamicRoutes.push({ method, segments: pattern.split('/').filter(Boolean), handler });

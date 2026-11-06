@@ -38,6 +38,18 @@ services:
         sync: false
       - key: KASPI_PAY_LINK
         sync: false
+      # Перевод на банковскую карту: номер можно вписать в backend/payment.config.js или здесь.
+      - key: PAY_CARD_NUMBER
+        sync: false
+      # Оплата картой на сайте (TipTop Pay). Public ID можно и в payment.config.js,
+      # API Secret — ТОЛЬКО здесь (репозиторий публичный).
+      - key: TIPTOPPAY_PUBLIC_ID
+        sync: false
+      - key: TIPTOPPAY_API_SECRET
+        sync: false
+      # Входы сотрудников в /admin: "Анна:пароль-анны;Ержан:пароль-ержана" (пароль от 8 символов).
+      - key: STAFF_LOGINS
+        sync: false
       # Постоянное хранение данных (бесплатный диск Render стирается): Upstash Redis,
       # см. README → «Данные не пропадают». Без них аккаунты и заказы живут до перезапуска.
       - key: UPSTASH_REDIS_REST_URL

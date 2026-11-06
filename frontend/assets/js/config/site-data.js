@@ -174,7 +174,7 @@ export const SITE_DATA = {
       times: [{ day: 6, start: '11:00' }, { day: 7, start: '11:00' }] },
     { id: 'aqua-morning', title: 'Аквааэробика', category: 'aqua', room: 'Бассейн 25 м', capacity: 14, durationMin: 60,
       times: [{ day: 1, start: '08:30' }, { day: 3, start: '08:30' }, { day: 5, start: '08:30' }, { day: 2, start: '19:00' }, { day: 4, start: '19:00' }] },
-    { id: 'gym-anytime', title: 'Тренажёрный зал (внедорожный час)', category: 'fitness', room: 'Фитнес, 4 этаж', capacity: 20, durationMin: 90,
+    { id: 'gym-anytime', title: 'Тренажёрный зал (свободный час)', category: 'fitness', room: 'Фитнес, 4 этаж', capacity: 20, durationMin: 90,
       times: [{ day: 1, start: '09:00' }, { day: 2, start: '09:00' }, { day: 3, start: '09:00' }, { day: 4, start: '09:00' }, { day: 5, start: '09:00' }, { day: 6, start: '09:00' }, { day: 7, start: '09:00' }] },
     { id: 'crossfit', title: 'Кроссфит', category: 'fitness', room: 'Зал кроссфита', capacity: 10, durationMin: 60,
       times: [{ day: 1, start: '19:30' }, { day: 3, start: '19:30' }, { day: 5, start: '19:30' }, { day: 6, start: '10:00' }] },

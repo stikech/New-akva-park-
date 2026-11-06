@@ -99,10 +99,18 @@ describe('Расписание и записи', () => {
     assert.deepEqual(data.myBookings, []);
   });
 
-  test('без абонемента запись невозможна (403 с подсказкой)', async () => {
-    const res = await book(srv.base, anna.cookie, await nextKey(srv.base, 'aqua'));
-    assert.equal(res.status, 403);
-    assert.match((await res.json()).error, /абонемент/i);
+  test('без абонемента — разовое занятие: нужно согласие с офертой, затем 201 (payment single)', async () => {
+    const key = await nextKey(srv.base, 'group');
+    const refused = await book(srv.base, anna.cookie, key);
+    assert.equal(refused.status, 422);
+    assert.match((await refused.json()).errors.consent, /оферт/);
+
+    const res = await fetch(`${srv.base}/api/bookings`, json({ key, consent: true }, { Cookie: anna.cookie, Origin: srv.base }));
+    const body = await res.json();
+    assert.equal(res.status, 201, JSON.stringify(body));
+    assert.equal(body.booking.payment, 'single');
+    assert.equal(body.booking.paid, false);
+    assert.ok(body.booking.price > 0);
   });
 
   test('битый ключ — 422, unrecognized занимается — 404', async () => {
@@ -125,8 +133,9 @@ describe('Расписание и записи', () => {
   test('в myBookings запись видна, повторная — 200 already', async () => {
     const data = await fetch(`${srv.base}/api/schedule?days=7`, { headers: { Cookie: anna.cookie } }).then((r) => r.json());
     assert.equal(data.membership.status, 'active');
-    assert.equal(data.myBookings.length, 1);
-    assert.equal(data.myBookings[0].key, annaKey);
+    // ещё одна — разовое занятие из теста выше
+    assert.equal(data.myBookings.length, 2);
+    assert.equal(data.myBookings.find((b) => b.key === annaKey).payment, 'membership');
     assert.ok(data.days.flatMap((d) => d.slots).find((s) => s.mine && s.key === annaKey), 'флаг mine расписан');
 
     const res = await book(srv.base, anna.cookie, annaKey);
@@ -134,15 +143,27 @@ describe('Расписание и записи', () => {
     assert.equal((await res.json()).already, true);
   });
 
-  test('запись на чужую catégorie абонемента невозможна (403)', async () => {
-    const res = await book(srv.base, anna.cookie, await nextKey(srv.base, 'combat'));
-    assert.equal(res.status, 403);
-    assert.match((await res.json()).error, /Фитнес|Бассейн/);
+  test('занятие не из своего абонемента — разовое (payment single), а не по абонементу', async () => {
+    const res = await fetch(`${srv.base}/api/bookings`, json({ key: await nextKey(srv.base, 'combat'), consent: true }, { Cookie: anna.cookie, Origin: srv.base }));
+    assert.equal(res.status, 201);
+    assert.equal((await res.json()).booking.payment, 'single');
   });
 
-  test('запись без входа — 401', async () => {
-    const res = await fetch(`${srv.base}/api/bookings`, json({ key: annaKey }, { Origin: srv.base }));
-    assert.equal(res.status, 401);
+  test('запись без входа — нужны имя и телефон гостя, потом 201; гость отменяет по телефону', async () => {
+    const noGuest = await fetch(`${srv.base}/api/bookings`, json({ key: annaKey, consent: true }, { Origin: srv.base }));
+    assert.equal(noGuest.status, 422);
+
+    const guest = { name: 'Гость Тестов', phone: '8 705 111 22 33' };
+    const res = await fetch(`${srv.base}/api/bookings`, json({ key: annaKey, guest, consent: true }, { Origin: srv.base }));
+    const body = await res.json();
+    assert.equal(res.status, 201, JSON.stringify(body));
+    assert.equal(body.booking.payment, 'single');
+
+    const wrongPhone = await fetch(`${srv.base}/api/bookings/${body.booking.id}/cancel`, json({ phone: '+77050000000' }, { Origin: srv.base }));
+    assert.equal(wrongPhone.status, 404);
+    const cancelled = await fetch(`${srv.base}/api/bookings/${body.booking.id}/cancel`, json({ phone: guest.phone }, { Origin: srv.base }));
+    assert.equal(cancelled.status, 200);
+    assert.equal((await cancelled.json()).booking.status, 'cancelled');
   });
 
   test('вместимость: места кончились — 409 следующему', async () => {
@@ -217,5 +238,33 @@ describe('Расписание и записи', () => {
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.ok(Array.isArray(body.items));
+  });
+
+  test('сотрудник: день по занятиям, ручная запись клиента, отметка прихода и отмена', async () => {
+    const admin = { Authorization: 'Bearer test-token' };
+    const key = await nextKey(srv.base, 'kids', 2);
+    const date = key.slice(0, 10);
+
+    const added = await fetch(`${srv.base}/api/admin/bookings`, json({ key, name: 'Мама Тимура', phone: '+7 701 555 44 33' }, admin));
+    const { booking } = await added.json();
+    assert.equal(added.status, 201);
+    assert.equal(booking.payment, 'single');
+
+    const day = await fetch(`${srv.base}/api/admin/bookings?date=${date}`, { headers: admin }).then((r) => r.json());
+    const slot = day.slots.find((s) => s.key === key);
+    assert.ok(slot, 'в ответе есть все занятия дня');
+    const mine = slot.items.find((b) => b.id === booking.id);
+    assert.equal(mine.name, 'Мама Тимура');
+    assert.equal(mine.phone, '+77015554433');
+    assert.equal(mine.createdBy, 'Администратор');
+
+    const attend = await fetch(`${srv.base}/api/admin/bookings/${booking.id}/attend`, json({ attended: true }, admin));
+    assert.equal(attend.status, 200);
+    const after = await fetch(`${srv.base}/api/admin/bookings?date=${date}`, { headers: admin }).then((r) => r.json());
+    assert.ok(after.slots.find((s) => s.key === key).items.find((b) => b.id === booking.id).attendedAt);
+
+    const cancel = await fetch(`${srv.base}/api/admin/bookings/${booking.id}/cancel`, json({}, admin));
+    assert.equal(cancel.status, 200);
+    assert.equal((await cancel.json()).booking.status, 'cancelled');
   });
 });

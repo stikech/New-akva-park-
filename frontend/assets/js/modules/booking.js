@@ -11,7 +11,7 @@
  */
 
 import { scheduleApi } from '../services/api.js?v=4';
-import { escapeHtml } from '../utils/format.js';
+import { escapeHtml, formatPrice } from '../utils/format.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -32,7 +32,9 @@ export function initBooking({ root, goto }) {
   // ---------- разметка ----------
 
   function slotHtml(slot) {
-    const state = slot.past ? 'past' : slot.mine ? 'mine' : slot.fullyBooked ? 'full' : slot.bookable ? 'open' : 'locked';
+    // В кабинете — запись по абонементу; разовое занятие оформляется на странице /classes (оферта, оплата).
+    const covered = slot.access ? slot.access === 'membership' : slot.bookable;
+    const state = slot.past ? 'past' : slot.mine ? 'mine' : slot.fullyBooked ? 'full' : slot.bookable && covered ? 'open' : 'locked';
     const busy = slot.capacity - slot.free;
     const pct = Math.round((busy / slot.capacity) * 100);
     const action = state === 'mine'
@@ -42,7 +44,7 @@ export function initBooking({ root, goto }) {
         : state === 'full'
           ? '<span class="slot__state">Мест нет</span>'
           : state === 'locked'
-            ? `<span class="slot__state slot__state--hint">Нужен ${escapeHtml(PLAN_LABEL[slot.needPlan ?? 'fitness'])}</span><button class="btn outline slot__btn" type="button" data-goto-shop>Купить</button>`
+            ? `<span class="slot__state slot__state--hint">Нужен ${escapeHtml(PLAN_LABEL[slot.needPlan ?? 'fitness'])}${slot.singlePrice ? ` или разово ${formatPrice(slot.singlePrice)}` : ''}</span><a class="btn outline slot__btn" href="/classes">Разово</a><button class="btn outline slot__btn" type="button" data-goto-shop>Абонемент</button>`
             : '<span class="slot__state">Время прошло</span>';
 
     return `

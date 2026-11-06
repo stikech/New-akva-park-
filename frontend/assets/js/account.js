@@ -14,7 +14,7 @@
 import { accountApi, shopApi } from './services/api.js?v=4';
 import { initTabs } from './modules/tabs.js';
 import { initTheme } from './modules/theme.js';
-import { initShop } from './modules/shop.js?v=2';
+import { initShop } from './modules/shop.js?v=3';
 import { initBooking } from './modules/booking.js';
 import { escapeHtml, formatPrice, initials, plural } from './utils/format.js';
 import {

@@ -1,4 +1,5 @@
-/* ?v=8 — отдельные страницы разделов (sections/pages.css), оплата Kaspi (kaspi.css).
+/* ?v=10 — корзина, оформление заказа и запись на занятия (sections/cart.css).
+   ?v=8 — отдельные страницы разделов (sections/pages.css), оплата Kaspi (kaspi.css).
    Точка входа стилей. Порядок важен: токены → база → каркас → компоненты → движение → секции. */
 
 @import url("tokens.css");
@@ -10,7 +11,7 @@
 
 @import url("sections/hero.css?v=2");
 @import url("sections/slides.css?v=2");
-@import url("sections/prices.css?v=4");
+@import url("sections/prices.css?v=5");
 @import url("sections/rules.css?v=3");
 @import url("sections/fitness.css?v=2");
 @import url("sections/classes.css?v=2");
@@ -18,3 +19,4 @@
 @import url("sections/pool-cafe.css?v=2");
 @import url("sections/contacts.css?v=2");
 @import url("sections/pages.css?v=3");
+@import url("sections/cart.css?v=2");

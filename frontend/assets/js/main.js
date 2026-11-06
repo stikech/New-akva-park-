@@ -10,24 +10,26 @@ import { createI18n } from './modules/i18n.js?v=4';
 import { initOpenStatus } from './modules/status.js';
 import { initWeather } from './modules/weather.js?v=2';
 import { initSlides } from './modules/slides.js';
-import { renderParkPrices, renderPoolPrices } from './modules/prices.js';
-import { initCalculator } from './modules/calculator.js';
-import { initVisitCheckout } from './modules/visit-checkout.js?v=3';
+import { renderParkPrices, renderPoolPrices } from './modules/prices.js?v=2';
+import { initCalculator } from './modules/calculator.js?v=2';
 import { initTabs } from './modules/tabs.js';
-import { renderFitness } from './modules/fitness.js';
+import { renderFitness } from './modules/fitness.js?v=2';
 import { renderSchedulePreview } from './modules/schedule-preview.js';
 import { initTeam } from './modules/team.js?v=2';
-import { renderSpa } from './modules/spa.js';
+import { renderSpa } from './modules/spa.js?v=2';
 import { renderHours } from './modules/hours.js';
-import { initFeedback } from './modules/feedback.js?v=2';
+import { initFeedback } from './modules/feedback.js?v=3';
 import { initMobileNav } from './modules/nav.js';
 import { markCurrentSection } from './modules/sections.js?v=2';
 import { initAccountLink } from './modules/account-link.js?v=2';
 import { initTheme } from './modules/theme.js';
 import { initReveal } from './modules/reveal.js';
 import { initTicketPage } from './modules/ticket-page.js';
-import { initShopPage } from './modules/shop-page.js';
+import { initShopPage } from './modules/shop-page.js?v=2';
 import { initOfferPage } from './modules/offer-page.js';
+import { initCartUi } from './modules/cart-ui.js?v=1';
+import { initCheckoutPage } from './modules/checkout-page.js?v=1';
+import { initClassesPage } from './modules/classes-page.js?v=1';
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -43,8 +45,11 @@ async function bootstrap() {
   markCurrentSection();
   initMobileNav($('.burger'), $('#drawer'));
   initTheme([...document.querySelectorAll('[data-theme-toggle]')]);
+  initCartUi();
+  on('#checkoutRoot', initCheckoutPage);
+  on('#classesBooking', (root) => initClassesPage(root, $('#classModal')));
   on('#ticketRoot', initTicketPage);
-  on('#shopRoot', (root) => initShopPage({ root, tabs: $('#shopTabs'), modal: $('#shopModal') }));
+  on('#shopRoot', (root) => initShopPage({ root, tabs: $('#shopTabs') }));
   on('#offerLegal', initOfferPage);
 
   const data = await getSiteData();
@@ -65,7 +70,6 @@ async function bootstrap() {
   on('#parkRows', (rows) => renderParkPrices({ rows, note: $('#parkNote') }, data.prices.park));
   on('#poolRows', (rows) => renderPoolPrices({ rows, saving: $('#poolSaving') }, data.prices.pool));
   on('#calculator', (el) => initCalculator(el, data.prices.park, dayType(today)));
-  on('#visitModal', (modal) => initVisitCheckout({ modal, park: data.prices.park }));
   on('#priceTabs', (el) => initTabs(el, { sync: true }));
 
   on('#clubCards', (cards) => renderFitness(
