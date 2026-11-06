@@ -326,7 +326,8 @@ describe('демо-аккаунты', () => {
       const fresh = createAccountStore(dataDir);
       await seedDemoAccounts(fresh, { log: silentLog });
       const after = await fresh.findUserByEmail('demo@neptun.kz');
-      assert.equal(after.lastName, 'Петрова');
+      assert.equal(after.lastName, null);
+      assert.equal(after.firstName, 'Никуша');
       assert.equal(after.id, before.id);
       assert.equal((await fresh.listUsers()).length, 3);
     } finally {

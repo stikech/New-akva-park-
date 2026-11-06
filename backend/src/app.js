@@ -109,7 +109,7 @@ export function createApp({
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
     if (!token) return null;
-    if (config.adminToken && sameSecret(token, config.adminToken)) return { id: 'owner', name: 'Владелец', role: 'owner' };
+    if (config.adminToken && sameSecret(token, config.adminToken)) return { id: 'owner', name: 'Никуша', role: 'owner' };
     const sealed = staffRoutes.fromToken(token);
     if (sealed) return sealed;
     // Проверяем все пароли без раннего выхода — время ответа не выдаёт, чей пароль ближе.

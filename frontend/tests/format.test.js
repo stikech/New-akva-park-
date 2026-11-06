@@ -16,7 +16,7 @@ test('plural — русские формы, включая 11–14', () => {
 
 test('initials', () => {
   assert.equal(initials('Руслан Касманов'), 'РК');
-  assert.equal(initials('  Галия  Харисова Шариповна '), 'ГХ');
+  assert.equal(initials('  Руслан  Касманов Ерланович '), 'РК');
 });
 
 test('validateFeedback', () => {

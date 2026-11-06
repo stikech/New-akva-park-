@@ -168,8 +168,12 @@ export function createCheckoutRoutes({
   async function fulfill(order) {
     if (order.fulfilled) return;
     const result = { membership: null, bookings: [] };
+    // В кабинет покупателя привязывается только первый абонемент заказа: у аккаунта один абонемент.
+    // Остальные абонементы (для родных и друзей) выдаются на ресепшене по коду заказа.
+    let attached = false;
     for (const line of order.lines) {
-      if (line.kind === 'membership' && order.userId) {
+      if (line.kind === 'membership' && order.userId && !attached) {
+        attached = true;
         const plan = plans.get(line.planId);
         let applied = null;
         await accounts.updateUser(order.userId, (u) => {
@@ -246,7 +250,6 @@ export function createCheckoutRoutes({
     if (!priced.lines.length && !errors.cart) errors.cart = 'Корзина пуста';
 
     const needs = cartNeeds(priced.lines);
-    if (needs.memberships > 1) errors.cart = 'Абонемент в заказе может быть только один — он привязывается к кабинету';
     if (needs.account && !user) errors.account = 'Абонемент привязывается к личному кабинету — войдите или зарегистрируйтесь';
 
     let visitDate = null;

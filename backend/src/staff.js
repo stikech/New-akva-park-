@@ -39,7 +39,7 @@ import { normalizePhone } from '../../frontend/assets/js/utils/account.js';
 
 const TOKEN_TTL_MS = 12 * 3_600_000; // смена сотрудника
 const LOGIN_RE = /^[a-z0-9._-]{3,32}$/;
-const OWNER_LOGINS = new Set(['', 'owner', 'admin', 'владелец']);
+const OWNER_LOGINS = new Set(['', 'owner', 'admin', 'владелец', 'никуша']);
 const sha256 = (s) => createHash('sha256').update(String(s)).digest();
 const same = (a, b) => timingSafeEqual(sha256(a), sha256(b));
 
@@ -166,7 +166,7 @@ export function createStaffRoutes({
   const loginFail = createRateLimiter({ max: 10, windowMs: 15 * 60_000 });
   setInterval(() => loginFail.sweep(), 60_000).unref();
 
-  const owner = { id: 'owner', name: 'Владелец', role: 'owner' };
+  const owner = { id: 'owner', name: 'Никуша', role: 'owner' }; // имя владельца в админке и журнале
   const publicStaff = (s) => ({
     id: s.id, name: s.name, login: s.login, active: s.active !== false, demo: Boolean(s.demo),
     createdAt: s.createdAt, lastLoginAt: s.lastLoginAt ?? null,

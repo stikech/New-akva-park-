@@ -12,6 +12,7 @@ import { initWeather } from './modules/weather.js?v=2';
 import { initSlides } from './modules/slides.js';
 import { renderParkPrices, renderPoolPrices } from './modules/prices.js?v=2';
 import { initCalculator } from './modules/calculator.js?v=2';
+import { renderAllPrices } from './modules/all-prices.js?v=1';
 import { initTabs } from './modules/tabs.js';
 import { renderFitness } from './modules/fitness.js?v=2';
 import { renderSchedulePreview } from './modules/schedule-preview.js';
@@ -68,6 +69,12 @@ async function bootstrap() {
   on('#slideList', (list) => initSlides({ list, heightInput: $('#h'), heightOutput: $('#hOut') }, data.slides));
 
   on('#parkRows', (rows) => renderParkPrices({ rows, note: $('#parkNote') }, data.prices.park));
+  // /prices: единый прайс всех сфер с «+»; примечания к тарифам — те же, что у таблиц аквапарка и бассейна
+  on('#allPrices', (el) => {
+    renderAllPrices(el, data);
+    $('#parkNote').textContent = data.prices.park.note;
+    renderPoolPrices({ rows: document.createElement('tbody'), saving: $('#poolSaving') }, data.prices.pool);
+  });
   on('#poolRows', (rows) => renderPoolPrices({ rows, saving: $('#poolSaving') }, data.prices.pool));
   on('#calculator', (el) => initCalculator(el, data.prices.park, dayType(today)));
   on('#priceTabs', (el) => initTabs(el, { sync: true }));
