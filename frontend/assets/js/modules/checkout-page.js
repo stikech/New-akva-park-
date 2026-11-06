@@ -184,7 +184,7 @@ export function initCheckoutPage(root) {
           <p class="muted">Соберите визит в калькуляторе или добавьте абонементы, SPA и занятия.</p>
           <div class="cart-empty__links">
             <a class="btn primary" href="/prices">Билеты и калькулятор</a>
-            <a class="btn ghost" href="/shop">Абонементы</a>
+            <a class="btn ghost" href="/prices#shop">Абонементы</a>
             <a class="btn ghost" href="/classes">Занятия</a>
           </div>
           ${recentOrdersHtml()}

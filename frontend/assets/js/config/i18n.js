@@ -11,7 +11,7 @@ export const HTML_LANG = { ru: 'ru', kz: 'kk' };
 export const STATIC_TRANSLATIONS = {
   kz: {
     nSlides: 'Төбешіктер',
-    nPrices: 'Бағалар',
+    nPrices: 'Бағалар және дүкен',
     nShop: 'Дүкен',
     nSpa: 'SPA',
     nPool: 'Бассейн және кафе',

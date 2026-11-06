@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/assets/css/main.css?v=11">
+  <link rel="stylesheet" href="/assets/css/main.css?v=12">
 
-  <script type="module" src="/assets/js/main.js?v=10"></script>
+  <script type="module" src="/assets/js/main.js?v=11"></script>
 </head>
 <body>
 
@@ -32,8 +32,7 @@
 
     <nav class="main" aria-label="Основное меню">
       <a href="/slides" data-i18n="nSlides">Горки</a>
-      <a href="/prices" aria-current="page" data-i18n="nPrices">Цены</a>
-      <a href="/shop" data-i18n="nShop">Магазин</a>
+      <a href="/prices" aria-current="page" data-i18n="nPrices">Цены и магазин</a>
       <a href="/rules" data-i18n="nRules">Правила</a>
       <a href="/fitness" data-i18n="nFitness">Фитнес</a>
       <a href="/classes" data-i18n="nClasses">Занятия</a>
@@ -64,8 +63,7 @@
 
   <nav class="drawer" id="drawer" aria-label="Мобильное меню">
     <a href="/slides" data-i18n="nSlides">Горки</a>
-    <a href="/prices" aria-current="page" data-i18n="nPrices">Цены</a>
-    <a href="/shop" data-i18n="nShop">Магазин</a>
+    <a href="/prices" aria-current="page" data-i18n="nPrices">Цены и магазин</a>
     <a href="/rules" data-i18n="nRules">Правила</a>
     <a href="/fitness" data-i18n="nFitness">Фитнес</a>
     <a href="/classes" data-i18n="nClasses">Занятия</a>
@@ -87,8 +85,8 @@
 
   <div class="page-head">
     <div class="wrap">
-      <h1 class="page-title">Все цены и покупка</h1>
-      <p class="page-lead">Все услуги комплекса на одной странице: добавляйте в корзину плюсиком и оплачивайте всё одним заказом.</p>
+      <h1 class="page-title" data-i18n="nPrices">Цены и магазин</h1>
+      <p class="page-lead">Всё в одном месте: калькулятор визита, цены всех услуг с кнопкой «+» и магазин абонементов. Складывайте сколько угодно услуг в корзину и оплачивайте всё одним заказом.</p>
     </div>
   </div>
 
@@ -103,6 +101,7 @@
         <a href="#price-pool">Бассейн</a>
         <a href="#price-fitness">Фитнес</a>
         <a href="#price-spa">SPA</a>
+        <a href="#shop">Абонементы</a>
       </nav>
 
       <div class="price-grid">
@@ -161,9 +160,20 @@
     </div>
   </section>
 
+  <!-- ===== Магазин абонементов (бывшая страница /shop): modules/shop-page.js ===== -->
+  <section id="shop" class="shop-page" aria-labelledby="shop-title">
+    <div class="wrap">
+      <h2 id="shop-title" data-i18n="nShop">Магазин абонементов</h2>
+      <p class="lead">Тренажёрный зал, бассейн и групповые программы. Абонементов можно взять несколько — себе и близким: первый появится в вашем личном кабинете сразу после оплаты, остальные выдадут на ресепшене по коду заказа.</p>
+      <div class="tabs tabs--scroll" id="shopTabs" role="tablist" aria-label="Категории абонементов"></div>
+      <div id="shopRoot" aria-live="polite"><p class="note">Загружаем тарифы…</p></div>
+      <p class="note shop-page__hint">Купленный абонемент виден в <a href="/account/membership">личном кабинете</a>.</p>
+    </div>
+  </section>
+
   <nav class="wrap pager" aria-label="Соседние разделы">
     <a class="pager__link" href="/slides" rel="prev"><small>Назад</small><span data-i18n="nSlides">Горки</span></a>
-    <a class="pager__link pager__link--next" href="/shop" rel="next"><small>Дальше</small><span data-i18n="nShop">Магазин</span></a>
+    <a class="pager__link pager__link--next" href="/rules" rel="next"><small>Дальше</small><span data-i18n="nRules">Правила</span></a>
   </nav>
 </main>
 

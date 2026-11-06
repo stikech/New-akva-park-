@@ -7,7 +7,7 @@
  */
 
 import { SITE_DATA } from '../config/site-data.js';
-import { GROUPS, buildCatalog } from '../utils/catalog.js?v=1';
+import { CART_LIMITS, GROUPS, buildCatalog } from '../utils/catalog.js?v=1';
 import { escapeHtml, formatPrice } from '../utils/format.js';
 import { cart } from './cart.js?v=1';
 
@@ -119,7 +119,7 @@ export function cartLinesHtml(lines, { editable = true } = {}) {
   return lines.map((line) => {
     const item = describe(line);
     if (!item) return '';
-    const max = item.kind === 'class' || item.kind === 'membership';
+    const max = item.kind === 'class' ? line.qty >= 1 : line.qty >= CART_LIMITS.qty; // занятие — одно место; остальное до лимита
     return `
       <li class="cart-line" data-group="${item.group}">
         <span class="cart-line__icon" aria-hidden="true">${GROUP_EMOJI[item.group] ?? '•'}</span>
@@ -156,7 +156,7 @@ function renderPanel() {
         <p class="muted">Соберите визит в калькуляторе или добавьте абонемент, SPA и занятия кнопкой «+».</p>
         <div class="cart-empty__links">
           <a class="btn ghost" href="/prices">Билеты и калькулятор</a>
-          <a class="btn ghost" href="/shop">Абонементы</a>
+          <a class="btn ghost" href="/prices#shop">Абонементы</a>
           <a class="btn ghost" href="/classes">Занятия</a>
         </div>
       </div>`;

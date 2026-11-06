@@ -47,7 +47,7 @@ import { actionLabel, actionTarget, createActivityLog, createPaymentSettings, cr
 import { deriveKey } from './sealed-token.js';
 
 /** Разделы сайта — отдельные страницы frontend/<раздел>.html, на них ведут кнопки шапки. */
-const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'shop', 'ticket', 'offer', 'checkout'];
+const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'ticket', 'offer', 'checkout'];
 const SITE_PAGES = new Map(SITE_SECTION_SLUGS.flatMap((s) => [[`/${s}`, `${s}.html`], [`/${s}/`, `${s}.html`]]));
 
 const sha256 = (s) => createHash('sha256').update(s).digest();
@@ -290,6 +290,13 @@ export function createApp({
       if (await serveFile(req, res, config.publicDir, pathname.slice('/admin/'.length))) return;
     } else if (pathname === '/' || pathname === '/index.html') {
       if (await serveFile(req, res, config.frontendDir, 'index.html')) return;
+    } else if (pathname === '/shop' || pathname === '/shop/') {
+      // Магазин объединён с ценами: одна вкладка «Цены и магазин». Старые ссылки (в т.ч. /shop?plan=… после вход)
+      // ведут на витрину абонементов внутри /prices — параметры сохраняются.
+      const { search } = new URL(req.url, 'http://localhost');
+      res.writeHead(302, { Location: `/prices${search}#shop`, 'Cache-Control': 'no-cache' });
+      res.end();
+      return;
     } else if (SITE_PAGES.has(pathname)) {
       // Каждый раздел — своя страница по чистому адресу: /prices → prices.html.
       if (await serveFile(req, res, config.frontendDir, SITE_PAGES.get(pathname))) return;
