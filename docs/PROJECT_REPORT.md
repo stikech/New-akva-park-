@@ -70,14 +70,14 @@ Render подключён к `stikech/New-akva-park-` как к **публичн
 2. **`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`** — upstash.com → Create Database → REST API.
    Без них аккаунты, заказы и билеты пропадают при каждом «засыпании» сервера. **Самое важное.**
 3. **`PAYMENT_SECRET`** — любая длинная случайная строка (подписи чеков).
-4. **`DEMO_ACCOUNTS=0`** — убрать демо-входы с общим паролем `neptun2026`.
+4. ~~**`DEMO_ACCOUNTS=0`**~~ — сделано 6.11, демо-входы на рабочем сайте выключены.
 5. По желанию: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` — уведомления «клиент оплатил».
 6. По желанию: `sellerName` / `sellerBin` в `backend/payment.config.js` — реквизиты в оферте.
 7. ~~Выкатить последний коммит на Render~~ — сделано 6.11 (Manual Deploy, `d5579e4`):
    `/shop`, `/offer`, `/account/shop`, `/ticket`, `/admin`, `/api/health` отвечают 200.
 
-Сейчас в Render заданы только `ADMIN_TOKEN`, `DEMO_ACCOUNTS` (= `1`, демо-входы включены),
-`NODE_VERSION`, `TRUST_PROXY`. Пункты 1–4 ещё не сделаны.
+Сейчас в Render заданы только `ADMIN_TOKEN`, `DEMO_ACCOUNTS` (= `0`),
+`NODE_VERSION`, `TRUST_PROXY`. Пункты 1–3 ещё не сделаны.
 
 ## Идеи на будущее
 - Договор Kaspi Pay для автоматического подтверждения оплаты.
