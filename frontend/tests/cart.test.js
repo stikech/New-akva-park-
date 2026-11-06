@@ -86,3 +86,28 @@ test('clampQty', () => {
   assert.equal(clampQty(Number.NaN), 0);
   assert.equal(clampQty(1e9), CART_MAX_QTY);
 });
+
+test('корзина копит разные услуги: новая не заменяет предыдущую, всё переживает перезагрузку', async () => {
+  const { createCartStore } = await import('../assets/js/modules/cart.js');
+  const mem = new Map();
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v), removeItem: (k) => mem.delete(k) };
+
+  const cart = createCartStore(products, { storage });
+  const seen = [];
+  cart.subscribe((s) => seen.push(s.lines.length));
+  cart.add('park:adult:weekday:unl');
+  cart.add('massage:0');
+  cart.add('gold:1');
+  cart.add('pool:child:1');
+  cart.add('massage:0');
+  assert.deepEqual(cart.lines(), [
+    { id: 'park:adult:weekday:unl', qty: 1 },
+    { id: 'massage:0', qty: 2 },
+    { id: 'gold:1', qty: 1 },
+    { id: 'pool:child:1', qty: 1 },
+  ]);
+  assert.deepEqual(seen, [0, 1, 2, 3, 4, 4], 'подписчики получают обновление после каждого нажатия');
+
+  const reloaded = createCartStore(products, { storage }); // «F5»: новое хранилище читает тот же localStorage
+  assert.deepEqual(reloaded.lines(), cart.lines());
+});

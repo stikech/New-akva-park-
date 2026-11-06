@@ -1,7 +1,7 @@
 /**
  * Единый калькулятор: аквапарк, бассейн, фитнес и SPA.
  *
- * Режим калькулятора следует за выбранной вкладкой прайса (#priceTabs):
+ * Сфера выбирается переключателем в самом калькуляторе:
  *  - «Аквапарк» — привычный расчёт визита: взрослые, дети, будни/выходные, 2 часа/без лимита;
  *  - остальные сферы — выбор услуги из прайса этой сферы и количество.
  * «Добавить в корзину» кладёт позиции в общую корзину (modules/cart.js); итог
@@ -16,7 +16,7 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const CATEGORY_LABEL = Object.fromEntries(CART_CATEGORIES.map((c) => [c.id, c.label]));
 
-export function initCalculator({ root, tablist }, cart, initialDay) {
+export function initCalculator({ root }, cart, initialDay) {
   const products = [...cart.index.values()];
   const state = {
     category: 'park',
@@ -30,7 +30,7 @@ export function initCalculator({ root, tablist }, cart, initialDay) {
   const select = $('#calcService', root);
   const groups = $$('.seg[data-group]', parkBox);
   const out = {
-    category: $('[data-calc-category]', root),
+    cats: $$('[data-calc-cats] button', root),
     adult: $('[data-count="adult"]', root),
     child: $('[data-count="child"]', root),
     qty: $('[data-count="qty"]', root),
@@ -69,7 +69,7 @@ export function initCalculator({ root, tablist }, cart, initialDay) {
     const isPark = state.category === 'park';
     parkBox.hidden = !isPark;
     serviceBox.hidden = isPark;
-    out.category.textContent = CATEGORY_LABEL[state.category] ?? '';
+    out.cats.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.category === state.category)));
 
     if (isPark) {
       out.adult.textContent = state.park.adult;
@@ -139,16 +139,8 @@ export function initCalculator({ root, tablist }, cart, initialDay) {
     out.added.textContent = `Добавлено в корзину на ${formatPrice(total)}.`;
   });
 
-  // Режим следует за вкладкой прайса: наблюдаем aria-selected (клик, стрелки, ссылка #tab-…)
-  const syncWithTabs = () => {
-    const selected = tablist?.querySelector('[role="tab"][aria-selected="true"]');
-    if (selected?.dataset.category) setCategory(selected.dataset.category);
-  };
-  if (tablist) {
-    new MutationObserver(syncWithTabs).observe(tablist, { subtree: true, attributes: true, attributeFilter: ['aria-selected'] });
-  }
+  out.cats.forEach((b) => b.addEventListener('click', () => setCategory(b.dataset.category)));
 
-  syncWithTabs();
   render();
 
   return {

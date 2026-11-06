@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="assets/css/main.css?v=8">
+  <link rel="stylesheet" href="assets/css/main.css?v=10">
 
-  <script type="module" src="assets/js/main.js?v=7"></script>
+  <script type="module" src="assets/js/main.js?v=8"></script>
 </head>
 <body>
 
@@ -153,63 +153,41 @@
   <section id="prices" class="prices" aria-labelledby="prices-title">
     <div class="wrap">
       <h2 id="prices-title" data-i18n="pricesTitle">Цены и покупка</h2>
-      <p class="lead">Аквапарк, бассейн, фитнес и SPA — в одном месте. Посчитайте стоимость, сложите услуги в корзину и оплатите всё одним платежом.</p>
+      <p class="lead">Все цены аквапарка, бассейна, фитнеса и SPA — на одной странице. Нажимайте «+» у нужных услуг: каждая добавляется в корзину отдельной строкой, и всё оплачивается одним платежом.</p>
 
-      <div class="tabs tabs--scroll" id="priceTabs" role="tablist" aria-label="Сферы и тарифы">
-        <button role="tab" id="tab-park" aria-selected="true" aria-controls="panel-park" type="button" data-category="park">Аквапарк</button>
-        <button role="tab" id="tab-pool" aria-selected="false" aria-controls="panel-pool" type="button" data-category="pool">Плавательный бассейн</button>
-        <button role="tab" id="tab-fitness" aria-selected="false" aria-controls="panel-fitness" type="button" data-category="fitness">Фитнес</button>
-        <button role="tab" id="tab-spa" aria-selected="false" aria-controls="panel-spa" type="button" data-category="spa">SPA</button>
-      </div>
+      <!-- Быстрый переход по сферам внутри одного прайса (не вкладки: всё видно сразу) -->
+      <nav class="price-jump" aria-label="Сферы в прайсе">
+        <a href="#price-park">Аквапарк</a>
+        <a href="#price-pool">Бассейн</a>
+        <a href="#price-fitness">Фитнес</a>
+        <a href="#price-spa">SPA</a>
+      </nav>
 
       <div class="price-grid">
-        <div class="price-panels">
-          <div id="panel-park" role="tabpanel" aria-labelledby="tab-park" class="table-card">
-            <div class="scroll-x">
-              <table>
-                <thead><tr><th>Билет</th><th>Будни, 2 часа</th><th>Будни, без лимита</th><th>Выходные, 2 часа</th><th>Выходные, без лимита</th></tr></thead>
-                <tbody id="parkRows"></tbody>
-              </table>
-            </div>
-            <p class="note" id="parkNote"></p>
-            <p class="note">Время считается по браслету: от выдачи на входе до сдачи на кассе выхода.</p>
+        <!-- Единый прайс: все услуги всех сфер, у каждой «+» в корзину (modules/prices.js) -->
+        <div class="table-card price-catalog" id="priceCatalog">
+          <div class="scroll-x">
+            <table class="catalog-table">
+              <thead><tr><th>Услуга</th><th>Цена</th><th><span class="sr-only">В корзине</span></th></tr></thead>
+              <tbody id="catalogRows"></tbody>
+            </table>
           </div>
-
-          <div id="panel-pool" role="tabpanel" aria-labelledby="tab-pool" class="table-card" hidden>
-            <div class="scroll-x">
-              <table>
-                <thead><tr><th>Билет</th><th>1 час</th><th>2 часа</th><th>3 часа</th><th>12 посещений, 2 месяца</th></tr></thead>
-                <tbody id="poolRows"></tbody>
-              </table>
-            </div>
-            <p class="note">Бассейн 25 м работает ежедневно с 08:00 до 23:00.</p>
-            <p class="note" id="poolSaving"></p>
-          </div>
-
-          <div id="panel-fitness" role="tabpanel" aria-labelledby="tab-fitness" class="table-card" hidden>
-            <div class="scroll-x">
-              <table class="catalog-table">
-                <thead><tr><th>Услуга</th><th>Цена</th><th><span class="sr-only">В корзину</span></th></tr></thead>
-                <tbody id="fitnessRows"></tbody>
-              </table>
-            </div>
-            <p class="note">Пакеты посещений и «Золотая» карта активируются на ресепшене по номеру заказа. Привязать абонемент к личному кабинету можно во вкладке «Магазин» кабинета.</p>
-          </div>
-
-          <div id="panel-spa" role="tabpanel" aria-labelledby="tab-spa" class="table-card" hidden>
-            <div class="scroll-x">
-              <table class="catalog-table">
-                <thead><tr><th>Услуга</th><th>Цена</th><th><span class="sr-only">В корзину</span></th></tr></thead>
-                <tbody id="spaRows"></tbody>
-              </table>
-            </div>
-            <p class="note">Время сеанса массажа согласуйте по телефону после оплаты: 33-64-41, 46-39-79.</p>
-          </div>
+          <p class="note" id="parkNote"></p>
+          <p class="note">Время в аквапарке считается по браслету: от выдачи на входе до сдачи на кассе выхода.</p>
+          <p class="note" id="poolSaving"></p>
+          <p class="note">Абонементы фитнеса и бассейна активируются на ресепшене по номеру заказа. Время массажа согласуйте по телефону после оплаты: 33-64-41, 46-39-79.</p>
         </div>
 
+        <div class="price-side">
         <!-- Единый калькулятор: режим меняется вместе с вкладкой (modules/calculator.js) -->
         <div class="calc" id="calculator">
-          <h3><span data-i18n="calcTitle">Калькулятор</span> · <span data-calc-category>Аквапарк</span></h3>
+          <h3 data-i18n="calcTitle">Калькулятор</h3>
+          <div class="seg calc__cats" data-calc-cats role="group" aria-label="Сфера">
+            <button type="button" data-category="park" aria-pressed="true">Аквапарк</button>
+            <button type="button" data-category="pool" aria-pressed="false">Бассейн</button>
+            <button type="button" data-category="fitness" aria-pressed="false">Фитнес</button>
+            <button type="button" data-category="spa" aria-pressed="false">SPA</button>
+          </div>
 
           <div data-calc-mode="park">
             <div class="row">
@@ -265,22 +243,24 @@
           <p class="calc__added" data-calc-added role="status"></p>
           <p class="note" data-i18n="calcNote">Можно сложить в корзину аквапарк, бассейн, фитнес и SPA и оплатить всё сразу картой на сайте.</p>
         </div>
+
+          <!-- Корзина: сохраняется в браузере (localStorage) и переживает обновление страницы -->
+          <div class="cart" id="cart" aria-labelledby="cart-title" tabindex="-1">
+            <div class="cart__head">
+              <h3 id="cart-title"><span data-i18n="cartTitle">Корзина</span> <span class="cart__count" data-cart-count></span></h3>
+              <button class="cart__clear" type="button" data-cart-clear hidden>Очистить</button>
+            </div>
+            <p class="cart__empty" data-cart-empty>Корзина пуста — нажмите «+» у любой услуги в прайсе или посчитайте в калькуляторе.</p>
+            <ul class="cart__lines" data-cart-lines aria-live="polite"></ul>
+            <div class="cart__footer" data-cart-footer hidden>
+              <div class="total"><span>Итого к оплате</span><b data-cart-total>—</b></div>
+              <button class="btn primary btn--block" type="button" data-cart-checkout data-i18n="cartPay">Оплатить всё</button>
+              <p class="note">Окончательную сумму считает сервер по прайсу. Корзина хранится в этом браузере и не пропадает после обновления страницы.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Корзина: сохраняется в браузере (localStorage) и переживает обновление страницы -->
-      <div class="cart" id="cart" aria-labelledby="cart-title" tabindex="-1">
-        <div class="cart__head">
-          <h3 id="cart-title"><span data-i18n="cartTitle">Корзина</span> <span class="cart__count" data-cart-count></span></h3>
-          <button class="cart__clear" type="button" data-cart-clear hidden>Очистить</button>
-        </div>
-        <p class="cart__empty" data-cart-empty>Корзина пуста — выберите услугу в калькуляторе или нажмите «+» в прайсе.</p>
-        <ul class="cart__lines" data-cart-lines aria-live="polite"></ul>
-        <div class="cart__footer" data-cart-footer hidden>
-          <div class="total"><span>Итого к оплате</span><b data-cart-total>—</b></div>
-          <button class="btn primary btn--block" type="button" data-cart-checkout data-i18n="cartPay">Оплатить всё</button>
-          <p class="note">Окончательную сумму считает сервер по прайсу. Корзина хранится в этом браузере и не пропадает после обновления страницы.</p>
-        </div>
-      </div>
     </div>
   </section>
 

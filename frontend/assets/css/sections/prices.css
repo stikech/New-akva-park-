@@ -111,9 +111,51 @@ body.visit-modal-open { overflow: hidden; }
 
 /* ---------- Единая вкладка: вкладки сфер, прайс-каталог, калькулятор ---------- */
 
-#priceTabs { margin-top: 24px; }
-.price-panels { min-width: 0; }
-@media (min-width: 960px) { .calc { position: sticky; top: 84px; align-self: start; } }
+/* Быстрый переход по сферам внутри единого прайса */
+.price-jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.price-jump a {
+  padding: 7px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.price-jump a:hover { border-color: var(--water); }
+
+.price-catalog { min-width: 0; }
+.price-side { display: grid; gap: 24px; align-content: start; min-width: 0; }
+/* Справа калькулятор и корзина видны, пока листаешь длинный прайс */
+@media (min-width: 960px) {
+  .price-side { position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+}
+.price-side .cart { margin-top: 0; }
+.calc__cats { margin-bottom: 6px; }
+
+.catalog-table__cat th {
+  padding: 26px 0 6px;
+  color: var(--ink);
+  font: 700 18px "Unbounded", system-ui, sans-serif;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 90px;
+}
+.catalog-table tbody tr:first-child.catalog-table__cat th { padding-top: 6px; }
+.catalog-table tr.is-in-cart td { background: color-mix(in srgb, var(--lagoon) 70%, transparent); }
+.row-qty { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.row-qty__n { min-width: 18px; text-align: center; font-weight: 700; }
+/* Место под «− N +» зарезервировано всегда: строка не расширяется после первого «+» */
+.row-qty [hidden] { display: inline-grid; visibility: hidden; }
+@media (max-width: 599px) {
+  .catalog-table td:first-child { overflow-wrap: anywhere; }
+  .catalog-table__price { white-space: normal; }
+  .row-qty { gap: 3px; }
+  .row-qty .add-btn { width: 30px; height: 30px; font-size: 17px; }
+  .row-qty__n { min-width: 14px; }
+}
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -129,9 +171,11 @@ body.visit-modal-open { overflow: hidden; }
 }
 .catalog-table__price { white-space: nowrap; font-weight: 600; }
 .catalog-table__price small { color: var(--muted); font-weight: 400; }
-.catalog-table__add { width: 44px; text-align: right; }
+.catalog-table__add { text-align: right; white-space: nowrap; }
 
 .add-btn {
+  display: inline-grid;
+  place-items: center;
   width: 34px;
   height: 34px;
   border: 1.5px solid var(--line);
@@ -183,12 +227,7 @@ body.visit-modal-open { overflow: hidden; }
 .cart__lines { list-style: none; margin: 14px 0 0; padding: 0; }
 .cart__footer .total { margin-top: 14px; }
 .cart__footer .btn { margin-top: 14px; }
-@media (min-width: 720px) {
-  .cart__footer { display: grid; grid-template-columns: 1fr minmax(240px, 320px); gap: 0 24px; align-items: center; }
-  .cart__footer .total { grid-column: 1 / -1; }
-  .cart__footer .btn { grid-column: 2; grid-row: 2; }
-  .cart__footer .note { grid-column: 1; grid-row: 2; margin: 14px 0 0; }
-}
+.cart__footer .btn { width: 100%; }
 
 .cart-line {
   display: grid;
@@ -218,9 +257,7 @@ body.visit-modal-open { overflow: hidden; }
   cursor: pointer;
 }
 .cart-line__remove:hover { background: var(--mist); color: var(--error); }
-@media (min-width: 720px) {
-  .cart-line { grid-template-columns: minmax(0, 1fr) auto 110px 32px; grid-template-areas: "info qty sum remove"; }
-}
+
 
 /* ---------- Чекаут корзины ---------- */
 

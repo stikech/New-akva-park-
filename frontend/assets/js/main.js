@@ -8,12 +8,11 @@ import { createI18n } from './modules/i18n.js?v=3';
 import { initOpenStatus } from './modules/status.js';
 import { initWeather } from './modules/weather.js?v=2';
 import { initSlides } from './modules/slides.js';
-import { renderCatalogRows, renderParkPrices, renderPoolPrices } from './modules/prices.js?v=2';
-import { initCalculator } from './modules/calculator.js?v=2';
-import { bindAddButtons, createCartStore, initCartView } from './modules/cart.js';
-import { initCartCheckout } from './modules/cart-checkout.js';
+import { renderCatalogRows, renderParkNote, renderPoolSaving, syncCatalogQty } from './modules/prices.js?v=3';
+import { initCalculator } from './modules/calculator.js?v=3';
+import { bindAddButtons, createCartStore, initCartView } from './modules/cart.js?v=2';
+import { initCartCheckout } from './modules/cart-checkout.js?v=2';
 import { buildProducts } from './utils/cart.js';
-import { initTabs } from './modules/tabs.js';
 import { renderFitness } from './modules/fitness.js';
 import { renderSchedulePreview } from './modules/schedule-preview.js';
 import { initTeam } from './modules/team.js?v=2';
@@ -53,16 +52,15 @@ async function bootstrap() {
 
   initSlides({ list: $('#slideList'), heightInput: $('#h'), heightOutput: $('#hOut') }, data.slides);
 
-  renderParkPrices({ rows: $('#parkRows'), note: $('#parkNote') }, data.prices.park);
-  renderPoolPrices({ rows: $('#poolRows'), saving: $('#poolSaving') }, data.prices.pool);
   // Единая вкладка «Цены и покупка»: прайс всех сфер, калькулятор и корзина.
   const products = buildProducts(data);
   const cart = createCartStore(products);
-  renderCatalogRows($('#fitnessRows'), products.filter((p) => p.category === 'fitness'));
-  renderCatalogRows($('#spaRows'), products.filter((p) => p.category === 'spa'));
-  initTabs($('#priceTabs'), { sync: true });
-  const calculator = initCalculator({ root: $('#calculator'), tablist: $('#priceTabs') }, cart, dayType(today));
-  bindAddButtons($('#prices'), cart, (id) => calculator.notifyAdded(id));
+  renderCatalogRows($('#catalogRows'), products);
+  renderParkNote($('#parkNote'), data.prices.park);
+  renderPoolSaving($('#poolSaving'), data.prices.pool);
+  cart.subscribe(({ lines }) => syncCatalogQty($('#catalogRows'), lines));
+  const calculator = initCalculator({ root: $('#calculator') }, cart, dayType(today));
+  bindAddButtons($('#priceCatalog'), cart, (id) => calculator.notifyAdded(id));
   const checkout = initCartCheckout({ modal: $('#cartModal'), cart });
   initCartView(
     { root: $('#cart'), badges: [...document.querySelectorAll('[data-cart-badge]')], links: [...document.querySelectorAll('[data-cart-link]')] },

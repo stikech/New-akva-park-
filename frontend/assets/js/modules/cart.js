@@ -171,13 +171,21 @@ export function initCartView({ root, badges, links }, cart, { onCheckout }) {
   cart.subscribe(render);
 }
 
-/** Кнопки «+» в таблицах прайса (фитнес, SPA): добавляют позицию в корзину. */
+/** Кнопки «+» и «−» в строках прайса: каждое нажатие сразу меняет корзину. */
 export function bindAddButtons(container, cart, onAdded) {
   container.addEventListener('click', (event) => {
-    const btn = event.target.closest('[data-add-product]');
-    if (!btn) return;
-    cart.add(btn.dataset.addProduct, 1);
-    onAdded?.(btn.dataset.addProduct, btn);
+    const add = event.target.closest('[data-add-product]');
+    if (add) {
+      cart.add(add.dataset.addProduct, 1);
+      onAdded?.(add.dataset.addProduct, add);
+      return;
+    }
+    const minus = event.target.closest('[data-remove-product]');
+    if (minus) {
+      const id = minus.dataset.removeProduct;
+      const line = cart.lines().find((l) => l.id === id);
+      if (line) cart.set(id, line.qty - 1);
+      if (!line || line.qty <= 1) minus.closest('tr')?.querySelector('[data-add-product]')?.focus(); // «−» исчез — фокус на «+»
+    }
   });
 }
-

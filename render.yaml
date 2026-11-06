@@ -1,5 +1,5 @@
 # Render Blueprint: один бесплатный web-сервис (API + фронтенд).
-# Деплой: https://render.com/deploy?repo=https://github.com/stikech/New-akva-park-
+# Деплой: https://render.com/deploy?repo=https://github.com/SAKEDA-hub/New-akva-park-
 services:
   - type: web
     name: neptun-aquapark
