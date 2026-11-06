@@ -69,6 +69,6 @@ test('ageOn — полных лет с учётом дня рождения', ()
 });
 
 test('profileCompleteness — процент и недостающие поля', () => {
-  assert.deepEqual(profileCompleteness({ firstName: 'Дина' }), { percent: 25, missing: ['Фамилия', 'Телефон', 'Дата рождения'] });
+  assert.deepEqual(profileCompleteness({ firstName: 'Арман' }), { percent: 25, missing: ['Фамилия', 'Телефон', 'Дата рождения'] });
   assert.equal(profileCompleteness({ firstName: 'А', lastName: 'Б', phone: '+77000000000', birthDate: '2000-01-01' }).percent, 100);
 });

@@ -256,7 +256,7 @@ describe('Расписание и записи', () => {
     const mine = slot.items.find((b) => b.id === booking.id);
     assert.equal(mine.name, 'Мама Тимура');
     assert.equal(mine.phone, '+77015554433');
-    assert.equal(mine.createdBy, 'Владелец');
+    assert.equal(mine.createdBy, 'Никуша');
 
     const attend = await fetch(`${srv.base}/api/admin/bookings/${booking.id}/attend`, json({ attended: true }, admin));
     assert.equal(attend.status, 200);

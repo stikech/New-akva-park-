@@ -29,7 +29,7 @@ function write(lines) {
   listeners.forEach((fn) => fn(lines));
 }
 
-const single = (id) => id.startsWith('class:') || id.startsWith('plan:');
+const single = (id) => id.startsWith('class:'); // запись на занятие — одно место
 const clampQty = (id, q) => Math.max(0, Math.min(single(id) ? 1 : CART_LIMITS.qty, q));
 
 export const cart = {
@@ -41,9 +41,8 @@ export const cart = {
 
   /** Добавляет qty к позиции (или создаёт её). Возвращает false, если корзина полна. */
   add(id, qty = 1, { ref, meta } = {}) {
-    let lines = read();
-    // Абонемент в заказе один: новый заменяет прежний.
-    if (id.startsWith('plan:')) lines = lines.filter((l) => !l.id.startsWith('plan:') || l.id === id);
+    // Новая позиция всегда добавляется рядом с прежними (абонементы тоже не заменяют друг друга).
+    const lines = read();
     const line = lines.find((l) => l.id === id);
     if (line) line.qty = clampQty(id, line.qty + qty);
     else if (lines.length >= CART_LIMITS.lines) return false;

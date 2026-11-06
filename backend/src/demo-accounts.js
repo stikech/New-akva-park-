@@ -43,8 +43,8 @@ export function demoAccounts({ now = new Date(), catalog = buildCatalog() } = {}
       label: 'Абонемент в бассейн',
       email: 'demo@neptun.kz',
       fields: {
-        firstName: 'Анна',
-        lastName: 'Петрова',
+        firstName: 'Никуша',
+        lastName: null,
         phone: '+77051234567',
         birthDate: '1995-03-08',
         membership: membership('pool:adult:12', shiftDate(today, -18), catalog, [16, 13, 9, 6, 2], today, now),
@@ -64,7 +64,7 @@ export function demoAccounts({ now = new Date(), catalog = buildCatalog() } = {}
     {
       label: 'Новый клиент без абонемента',
       email: 'new@neptun.kz',
-      fields: { firstName: 'Дина', lastName: null, phone: null, birthDate: null, membership: null },
+      fields: { firstName: 'Арман', lastName: null, phone: null, birthDate: null, membership: null },
     },
   ].map((a) => ({ ...a, fields: { ...a.fields, createdAt: `${shiftDate(today, -60)}T09:00:00.000Z` } }));
 }

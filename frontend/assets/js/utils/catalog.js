@@ -10,7 +10,8 @@
  * kind:
  *   ticket     — билет в аквапарк (нужна дата визита);
  *   service    — разовая услуга: бассейн по часам, разовое посещение фитнеса, SPA;
- *   membership — абонемент, привязывается к личному кабинету (planId = id тарифа из memberships.js);
+ *   membership — абонемент (planId = id тарифа из memberships.js). Первый в заказе привязывается к личному
+ *     кабинету покупателя, остальные (для родных и друзей) выдаются на ресепшене по коду заказа;
  *   class      — оплата разового занятия, на которое клиент уже записан.
  */
 
@@ -141,7 +142,7 @@ export function priceCart(cart, catalog) {
       rejected.push(line);
       continue;
     }
-    const max = item.kind === 'class' || item.kind === 'membership' ? 1 : CART_LIMITS.qty;
+    const max = item.kind === 'class' ? 1 : CART_LIMITS.qty;
     merged.set(item.id, Math.min(max, (merged.get(item.id) ?? 0) + qty));
   }
 
@@ -160,6 +161,6 @@ export function cartNeeds(lines) {
   return {
     account: lines.some((l) => l.kind === 'membership'),
     visitDate: lines.some((l) => l.kind === 'ticket'),
-    memberships: lines.filter((l) => l.kind === 'membership').length,
+    memberships: lines.filter((l) => l.kind === 'membership').reduce((s, l) => s + (l.qty ?? 1), 0),
   };
 }

@@ -82,7 +82,7 @@ describe('владелец и сотрудники', () => {
     assert.equal(issued.name, 'Мадина');
     assert.match(issued.target, /client@mail\.kz/);
     assert.ok(items.find((x) => x.action === 'Вошёл в админку' && x.name === 'Мадина'));
-    assert.ok(items.find((x) => x.action === 'Завёл сотрудника' && x.name === 'Владелец'));
+    assert.ok(items.find((x) => x.action === 'Завёл сотрудника' && x.name === 'Никуша'));
   });
 
   test('отключённый сотрудник сразу теряет доступ', async () => {

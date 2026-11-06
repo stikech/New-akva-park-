@@ -171,7 +171,7 @@ describe('корзина: заказ и оплата картой (PAYMENT_MODE=
     const res = await create({ cart: [{ id: 'plan:gold:1', qty: 3 }, { id: 'press:course', qty: 1 }], contact, consent: true }, { Cookie: cookie });
     const { order } = await res.json();
     assert.equal(res.status, 201);
-    assert.equal(order.lines.find((l) => l.kind === 'membership').qty, 1, 'абонемент — всегда одна штука');
+    assert.equal(order.lines.find((l) => l.kind === 'membership').qty, 3, 'абонементов можно купить несколько');
 
     await fetch(`${srv.base}/api/checkout/${order.id}/card`, json({ cryptogram: 'demo:5555555555554444' }, { Origin: srv.base }));
     const me = await fetch(`${srv.base}/api/account`, { headers: { Cookie: cookie } }).then((r) => r.json());
@@ -179,6 +179,20 @@ describe('корзина: заказ и оплата картой (PAYMENT_MODE=
 
     const mine = await fetch(`${srv.base}/api/checkout/mine`, { headers: { Cookie: cookie } }).then((r) => r.json());
     assert.equal(mine.items[0].id, order.id);
+  });
+
+  test('несколько разных абонементов в одном заказе: не заменяют друг друга, первый — в кабинет', async () => {
+    const reg = await fetch(`${srv.base}/api/auth/register`, json({ email: 'family@mail.kz', password: 'supersafepw1', firstName: 'Семья', consent: true }, { Origin: srv.base }));
+    const cookie = reg.headers.get('set-cookie').split(';')[0];
+    const res = await create({ cart: [{ id: 'plan:pool:adult:12', qty: 1 }, { id: 'plan:pool:child:12', qty: 2 }, { id: 'plan:gold:1', qty: 1 }], contact, consent: true }, { Cookie: cookie });
+    assert.equal(res.status, 201);
+    const { order } = await res.json();
+    const plans = order.lines.filter((l) => l.kind === 'membership');
+    assert.deepEqual(plans.map((l) => [l.id, l.qty]), [['plan:pool:adult:12', 1], ['plan:pool:child:12', 2], ['plan:gold:1', 1]]);
+
+    await fetch(`${srv.base}/api/checkout/${order.id}/card`, json({ cryptogram: 'demo:5555555555554444' }, { Origin: srv.base }));
+    const me = await fetch(`${srv.base}/api/account`, { headers: { Cookie: cookie } }).then((r) => r.json());
+    assert.equal(me.user.membership.planId, 'pool:adult:12', 'в кабинет привязан первый абонемент заказа, следующие его не перезаписали');
   });
 
   test('разовое занятие: запись гостя → оплата в корзине → запись оплачена', async () => {
@@ -249,7 +263,7 @@ describe('корзина: перевод на карту и подтвержде
     assert.equal(body.order.status, 'paid');
     assert.equal(body.order.method, 'transfer');
     const list = await fetch(`${srv.base}/api/admin/checkout`, { headers: staff }).then((r) => r.json());
-    assert.equal(list.items.find((o) => o.id === order.id).paidBy, 'Владелец');
+    assert.equal(list.items.find((o) => o.id === order.id).paidBy, 'Никуша');
   });
 
   test('отклонение перевода — cancelled с причиной', async () => {

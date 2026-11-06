@@ -39,7 +39,7 @@ export const STATIC_TRANSLATIONS = {
     ctaCall: 'Қоңырау шалу',
     ctaRoute: '2ГИС-те бағыт салу',
     slidesTitle: 'Биіктігі 22 метр төрт төбешік',
-    pricesTitle: 'Қанша тұрады',
+    pricesTitle: 'Барлық бағалар',
     rulesTitle: 'Уақыт қалай есептеледі',
     spaTitle: 'Бу, су және тыныштық',
     poolTitle: 'Жүзу бассейні',

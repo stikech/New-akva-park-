@@ -271,7 +271,7 @@ export function initCheckoutPage(root) {
           <div class="co-summary__head"><h2>Ваш заказ</h2><button class="btn ghost co-edit" type="button" data-edit>Изменить</button></div>
           <ul class="cart-lines cart-lines--static">${cartLinesHtml(items, { editable: false })}</ul>
           <div class="cart-total"><span>Итого</span><b>${formatPrice(total)}</b></div>
-          <p class="note">Цены по прейскуранту аквапарка. Билеты действуют в выбранную дату, абонемент появится в личном кабинете сразу после оплаты.</p>
+          <p class="note">Цены по прейскуранту аквапарка. Билеты действуют в выбранную дату, абонемент появится в личном кабинете сразу после оплаты${items.filter((i) => describe(i)?.kind === 'membership').reduce((s, i) => s + i.qty, 0) > 1 ? ' (первый; остальные абонементы выдаются на ресепшене по коду заказа)' : ''}.</p>
         </aside>
       </div>`;
 
@@ -613,7 +613,7 @@ export function initCheckoutPage(root) {
         <h2>Оплачено!</h2>
         <p class="co-code co-code--big">${escapeHtml(order.code)}</p>
         <p>Назовите этот код ${order.lines.some((l) => l.kind === 'ticket') ? 'на кассе при входе' : 'на ресепшене'} — сотрудник найдёт заказ.${date ? ` Дата визита: <b>${escapeHtml(date)}</b>.` : ''}</p>
-        ${order.needsAccount ? '<p>Абонемент уже в вашем <a href="/account/overview">личном кабинете</a>.</p>' : ''}
+        ${order.needsAccount ? `<p>Абонемент уже в вашем <a href="/account/overview">личном кабинете</a>.${order.lines.filter((l) => l.kind === 'membership').reduce((s, l) => s + l.qty, 0) > 1 ? ' Остальные абонементы из заказа выдадут на ресепшене по этому коду.' : ''}</p>` : ''}
         ${order.usedAt ? '<p class="pill-used">Заказ выдан / вход отмечен</p>' : ''}
         <ul class="cart-lines cart-lines--static">${orderLinesHtml(order)}</ul>
         <div class="cart-total"><span>Итого</span><b>${formatPrice(order.total)}</b></div>

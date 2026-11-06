@@ -818,7 +818,7 @@ async function loadActivity() {
     if (!staffList.length) staffList = (await api('/api/admin/staff')).items;
     const select = $('activityStaff');
     const chosen = select.value;
-    select.replaceChildren(new Option('Все', ''), new Option('Владелец', 'owner'), ...staffList.map((s) => new Option(s.name, s.id)));
+    select.replaceChildren(new Option('Все', ''), new Option('Никуша (владелец)', 'owner'), ...staffList.map((s) => new Option(s.name, s.id)));
     select.value = chosen;
     const { items: log } = await api(`/api/admin/activity?limit=500${chosen ? `&staff=${encodeURIComponent(chosen)}` : ''}`);
     $('activityFeed').replaceChildren(...log.map((x) => el('li', { className: `log__item${x.role === 'owner' ? ' log__item--owner' : ''}` },

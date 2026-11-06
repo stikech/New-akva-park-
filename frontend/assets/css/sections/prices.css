@@ -109,3 +109,70 @@ body.visit-modal-open { overflow: hidden; }
 .vc-list > div { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .vc-list dt { color: var(--muted); font-size: 14px; }
 .vc-list dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+
+/* ---------- Единый прайс /prices: все услуги с «+» и количеством в корзине ---------- */
+
+.price-jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.price-jump a {
+  padding: 7px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.price-jump a:hover { border-color: var(--water); }
+
+@media (min-width: 960px) { #prices .calc { position: sticky; top: 84px; align-self: start; } }
+
+.all-prices__table { width: 100%; }
+.all-prices__table td, .all-prices__table th { vertical-align: middle; }
+.all-prices__group th {
+  padding: 26px 0 6px;
+  color: var(--ink);
+  font: 700 18px "Unbounded", system-ui, sans-serif;
+  text-align: left;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 90px;
+}
+.all-prices__table tbody tr.all-prices__group:first-child th { padding-top: 4px; }
+.all-prices__sub th {
+  padding-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.all-prices__price { white-space: nowrap; font-weight: 600; }
+.all-prices__ctrl { text-align: right; white-space: nowrap; }
+.all-prices__qty { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
+/* место под «− N +» зарезервировано: строка не расширяется после первого «+» */
+.all-prices__qty [hidden] { display: inline-grid; visibility: hidden; }
+.all-prices__qty output { min-width: 16px; text-align: center; font-weight: 700; }
+.add-btn--minus { font-size: 18px; line-height: 1; }
+.all-prices__tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--lagoon);
+  color: var(--water-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  vertical-align: 1px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.all-prices__table tr.is-in-cart td { background: color-mix(in srgb, var(--lagoon) 70%, transparent); }
+@media (max-width: 599px) {
+  .all-prices__table td:first-child { overflow-wrap: anywhere; }
+  .all-prices__tag { display: table; margin: 4px 0 0; padding: 1px 6px; font-size: 11px; }
+  .all-prices__price { white-space: normal; }
+  .all-prices__qty { gap: 3px; }
+}
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

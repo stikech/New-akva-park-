@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/assets/css/main.css?v=10">
+  <link rel="stylesheet" href="/assets/css/main.css?v=11">
 
-  <script type="module" src="/assets/js/main.js?v=9"></script>
+  <script type="module" src="/assets/js/main.js?v=10"></script>
 </head>
 <body>
 
@@ -87,31 +87,30 @@
 
   <div class="page-head">
     <div class="wrap">
-      <h1 class="page-title">Цены и билеты</h1>
-      <p class="page-lead">Тарифы аквапарка и бассейна, калькулятор визита и покупка билетов онлайн — картой или переводом.</p>
+      <h1 class="page-title">Все цены и покупка</h1>
+      <p class="page-lead">Все услуги комплекса на одной странице: добавляйте в корзину плюсиком и оплачивайте всё одним заказом.</p>
     </div>
   </div>
 
-  <!-- ===== Цены ===== -->
+  <!-- ===== Все цены: одна таблица всех сфер с «+», калькулятор рядом ===== -->
   <section id="prices" class="prices" aria-labelledby="prices-title">
     <div class="wrap">
-      <h2 id="prices-title" data-i18n="pricesTitle">Сколько стоит</h2>
-      <p class="lead">Время считается по браслету: от выдачи на входе до сдачи на кассе выхода.</p>
+      <h2 id="prices-title" data-i18n="pricesTitle">Все цены</h2>
+      <p class="lead">Аквапарк, бассейн, фитнес и SPA — в одной таблице. Нажимайте «+» у нужных услуг: каждая добавляется в корзину отдельной строкой, повторный «+» увеличивает количество.</p>
 
-      <div class="tabs" id="priceTabs" role="tablist" aria-label="Тарифы">
-        <button role="tab" id="tab-park" aria-selected="true" aria-controls="panel-park" type="button">Аквапарк</button>
-        <button role="tab" id="tab-pool" aria-selected="false" aria-controls="panel-pool" type="button">Плавательный бассейн</button>
-      </div>
+      <nav class="price-jump" aria-label="Сферы в прайсе">
+        <a href="#price-park">Аквапарк</a>
+        <a href="#price-pool">Бассейн</a>
+        <a href="#price-fitness">Фитнес</a>
+        <a href="#price-spa">SPA</a>
+      </nav>
 
-      <div id="panel-park" role="tabpanel" aria-labelledby="tab-park" class="price-grid">
+      <div class="price-grid">
         <div class="table-card">
-          <div class="scroll-x">
-            <table>
-              <thead><tr><th>Билет</th><th>Будни, 2 часа</th><th>Будни, без лимита</th><th>Выходные, 2 часа</th><th>Выходные, без лимита</th></tr></thead>
-              <tbody id="parkRows"></tbody>
-            </table>
-          </div>
+          <div class="all-prices" id="allPrices"><!-- modules/all-prices.js --></div>
           <p class="note" id="parkNote"></p>
+          <p class="note">Время в аквапарке считается по браслету: от выдачи на входе до сдачи на кассе выхода. Бассейн 25 м работает ежедневно с 08:00 до 23:00.</p>
+          <p class="note" id="poolSaving"></p>
         </div>
 
         <div class="calc" id="calculator" aria-live="polite">
@@ -159,22 +158,6 @@
           <p class="note" data-i18n="calcNote">Дату визита выберете при оформлении. Оплата картой или переводом — код для входа сразу после оплаты.</p>
         </div>
       </div>
-
-      <div id="panel-pool" role="tabpanel" aria-labelledby="tab-pool" class="price-grid" hidden>
-        <div class="table-card">
-          <div class="scroll-x">
-            <table>
-              <thead><tr><th>Билет</th><th>1 час</th><th>2 часа</th><th>3 часа</th><th>12 посещений, 2 месяца</th></tr></thead>
-              <tbody id="poolRows"></tbody>
-            </table>
-          </div>
-          <p class="note">Бассейн 25 м работает ежедневно с 08:00 до 23:00.</p>
-        </div>
-        <div class="calc">
-          <h3>Абонемент выгоднее</h3>
-          <p class="lead" id="poolSaving"></p>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -194,6 +177,7 @@
   <div class="wrap footer__bottom">
     <span>Цены — по прейскуранту akvapark.kz · <a href="/offer">Публичная оферта</a></span>
     <span>ул. Юрия Медведева, 41</span>
+    <span>© 2026 Никуша — владелец сайта</span>
   </div>
 </footer>
 
