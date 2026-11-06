@@ -19,6 +19,7 @@ import { renderSpa } from './modules/spa.js';
 import { renderHours } from './modules/hours.js';
 import { initFeedback } from './modules/feedback.js?v=2';
 import { initMobileNav } from './modules/nav.js';
+import { initSectionRouting } from './modules/sections.js';
 import { initAccountLink } from './modules/account-link.js';
 import { initTheme } from './modules/theme.js';
 import { initReveal } from './modules/reveal.js';
@@ -28,6 +29,10 @@ const $ = (selector) => document.querySelector(selector);
 const MAIN_PHONE = '+7 7152 33-61-41';
 
 async function bootstrap() {
+  // Роутер секций — до запроса данных: по прямому адресу (/prices и т.п.)
+  // прокрутка к секции не должна ждать ответа сервера.
+  const router = initSectionRouting();
+
   const data = await getSiteData();
   const today = cityNow(data.tzOffsetHours);
 
@@ -74,6 +79,9 @@ async function bootstrap() {
   initAccountLink([...document.querySelectorAll('[data-account-link]')], i18n);
 
   i18n.init();
+
+  // Данные отрисованы, размеры секций устоялись — доскролл до адреса страницы.
+  router.reapply();
 }
 
 bootstrap().catch((error) => {

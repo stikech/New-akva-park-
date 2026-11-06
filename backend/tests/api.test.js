@@ -123,6 +123,18 @@ describe('API', () => {
     }
   });
 
+  test('секции главной доступны по собственным адресам: /prices, /pool…', async () => {
+    for (const p of ['/slides', '/prices/', '/rules', '/fitness/', '/classes', '/spa/', '/pool', '/contacts/']) {
+      const res = await fetch(`${srv.base}${p}`);
+      assert.equal(res.status, 200, p);
+      assert.match(res.headers.get('content-type') ?? '', /text\/html/u, p);
+      assert.match(await res.text(), /Нептун/u, p);
+    }
+    // Не секция и не файл — обычный 404, а не страница сайта.
+    assert.equal((await fetch(`${srv.base}/nosuchsection`)).status, 404);
+    assert.equal((await fetch(`${srv.base}/prices/nope`)).status, 404);
+  });
+
   test('неизвестный API → 404 JSON, неверный метод → 405', async () => {
     const res = await fetch(`${srv.base}/api/nope`);
     assert.equal(res.status, 404);

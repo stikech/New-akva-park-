@@ -29,7 +29,7 @@ nav.main a {
   color: var(--muted);
   transition: color .2s ease;
 }
-nav.main a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--water); }
+nav.main a:hover, nav.main a[aria-current="true"] { color: var(--ink); text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--water); }
 
 .account-link {
   display: inline-flex;
@@ -119,6 +119,7 @@ nav.main a:hover { color: var(--ink); text-decoration: underline; text-underline
   text-decoration: none;
   font-weight: 500;
 }
+.drawer a[aria-current="true"] { color: var(--ink); text-decoration-color: var(--water); text-decoration-line: underline; text-underline-offset: 6px; }
 
 @media (min-width: 1000px) {
   nav.main { display: flex; }

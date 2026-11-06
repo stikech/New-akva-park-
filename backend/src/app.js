@@ -12,7 +12,8 @@
  *   /api/visits/*               — онлайн-билеты аквапарка из калькулятора (visits.js)
  *   GET  /admin                 — страница администратора
  *   GET  /account[/раздел]      — личный кабинет: /account/overview, /account/shop…
- *   GET  /, /assets/*           — фронтенд
+ *   GET  /, /prices, /rules, …  — главная: чистые адреса секций (роутер на клиенте скроллит)
+ *   GET  /assets/*              — фронтенд
  */
 
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -31,6 +32,10 @@ import { createPaymentRoutes } from './payments.js';
 import { createBookingRoutes } from './bookings.js';
 import { createVisitRoutes } from './visits.js';
 import { createVisitStore } from './visit-store.js';
+
+/** Секции главной с собственными адресами вроде /prices — на них ведут кнопки шапки и меню. */
+const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts'];
+const SITE_SECTIONS = new Set(SITE_SECTION_SLUGS.flatMap((s) => [`/${s}`, `/${s}/`]));
 
 const sha256 = (s) => createHash('sha256').update(s).digest();
 
@@ -210,6 +215,10 @@ export function createApp({
     } else if (pathname.startsWith('/admin/')) {
       if (await serveFile(req, res, config.publicDir, pathname.slice('/admin/'.length))) return;
     } else if (pathname === '/' || pathname === '/index.html') {
+      if (await serveFile(req, res, config.frontendDir, 'index.html')) return;
+    } else if (SITE_SECTIONS.has(pathname)) {
+      // Навигация по сайту — настоящими адресами: /prices, /rules, /pool…
+      // Отдаём главную целиком, а скролл к секции делает клиентский роутер.
       if (await serveFile(req, res, config.frontendDir, 'index.html')) return;
     } else if (pathname === '/account' || pathname === '/account/' || pathname.startsWith('/account/')) {
       // Каждая кнопка дашборда — отдельный URL: /account/overview, /account/profile…
