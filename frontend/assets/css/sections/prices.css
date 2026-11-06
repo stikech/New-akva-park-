@@ -176,3 +176,7 @@ body.visit-modal-open { overflow: hidden; }
 }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Магазин абонементов внутри «Цены и магазин» */
+#shop { scroll-margin-top: 70px; }
+#prices + #shop .tabs, #shop .tabs { margin-top: 18px; }

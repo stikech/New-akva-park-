@@ -55,6 +55,16 @@ describe('API', () => {
     assert.equal((await res.json()).ok, true);
   });
 
+  test('магазин объединён с ценами: /shop → /prices#shop, параметры сохраняются', async () => {
+    const plain = await fetch(`${srv.base}/shop`, { redirect: 'manual' });
+    assert.equal(plain.status, 302);
+    assert.equal(plain.headers.get('location'), '/prices#shop');
+    const plan = await fetch(`${srv.base}/shop/?plan=gold:1`, { redirect: 'manual' });
+    assert.equal(plan.headers.get('location'), '/prices?plan=gold:1#shop');
+    const page = await fetch(`${srv.base}/prices`).then((r) => r.text());
+    assert.ok(page.includes('id="shopRoot"') && page.includes('id="allPrices"') && page.includes('id="calculator"'), 'на /prices — калькулятор, все цены и магазин');
+  });
+
   test('GET /api/site отдаёт ту же форму, что site-data.js, и поддерживает ETag', async () => {
     const res = await fetch(`${srv.base}/api/site`);
     assert.equal(res.status, 200);

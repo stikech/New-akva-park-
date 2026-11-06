@@ -1,9 +1,11 @@
 /**
- * Витрина абонементов /shop: тренажёрный зал, бассейн, групповые программы.
+ * Витрина абонементов — секция #shop на единой странице «Цены и магазин» (/prices;
+ * старый адрес /shop перенаправляется сюда): тренажёрный зал, бассейн, групповые программы.
  *
  * Каталог публичный (GET /api/catalog). Абонемент кладётся в корзину (modules/cart-ui.js) —
  * оплачивается вместе с билетами и SPA на /checkout. Абонемент привязан к аккаунту, поэтому
- * вход страница оформления попросит сама. Ссылка /shop?plan=<id> сразу кладёт тариф в корзину.
+ * вход страница оформления попросит сама. Ссылка /prices?plan=<id> (или старая /shop?plan=<id>)
+ * сразу кладёт тариф в корзину.
  */
 
 import { shopApi } from '../services/api.js?v=4';
@@ -58,7 +60,8 @@ export function initShopPage({ root, tabs }) {
       renderPlans();
       if (wanted) {
         addToCart(`plan:${wanted.id}`);
-        history.replaceState(null, '', location.pathname);
+        history.replaceState(null, '', `${location.pathname}#shop`);
+        document.getElementById('shop')?.scrollIntoView({ block: 'start' });
       }
     })
     .catch(() => {
