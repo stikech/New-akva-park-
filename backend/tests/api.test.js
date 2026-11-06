@@ -52,7 +52,9 @@ describe('API', () => {
   test('GET /api/health', async () => {
     const res = await fetch(`${srv.base}/api/health`);
     assert.equal(res.status, 200);
-    assert.equal((await res.json()).ok, true);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.ok('commit' in body, 'health показывает запущенный коммит (на Render — RENDER_GIT_COMMIT)');
   });
 
   test('магазин объединён с ценами: /shop → /prices#shop, параметры сохраняются', async () => {

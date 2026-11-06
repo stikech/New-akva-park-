@@ -139,7 +139,10 @@ export function createApp({
 
   const routes = {
     'GET /api/health': (req, res) => {
-      sendJson(res, 200, { ok: true, uptimeSec: Math.round((Date.now() - startedAt) / 1000) });
+      // commit — какая версия кода реально запущена (Render передаёт RENDER_GIT_COMMIT):
+      // сверить с последним коммитом на GitHub и понять, выкатился ли деплой.
+      const commit = (process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || '').slice(0, 7) || null;
+      sendJson(res, 200, { ok: true, uptimeSec: Math.round((Date.now() - startedAt) / 1000), commit });
     },
 
     'GET /api/payment': (req, res) => {
