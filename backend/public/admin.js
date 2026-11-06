@@ -20,10 +20,13 @@ let visitItems = [];
 let catalog = [];
 let today = '';
 let paymentItems = []; // ожидают подтверждения: заказы абонементов и билеты
-let current = 'payments'; // открытый раздел: payments | orders | classes | list (отзывы) | users (клиенты) | visits (билеты)
+let current = null; // открытый раздел (VIEWS); по умолчанию — первый доступный роли
+let me = null; // кто вошёл: { id, name, role: 'owner' | 'staff', demo? }
 let orderItems = []; // заказы корзины (/api/admin/checkout)
 let classesDate = '';
-const VIEWS = ['list', 'users', 'visits', 'payments', 'orders', 'classes'];
+const VIEWS = ['list', 'users', 'visits', 'payments', 'orders', 'classes', 'finance', 'staff', 'activity', 'settings'];
+const OWNER_VIEWS = new Set(['finance', 'payments', 'staff', 'activity', 'settings']);
+const isOwner = () => me?.role === 'owner';
 
 const dateFmt = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -41,7 +44,9 @@ function plural(n, [one, few, many]) {
 }
 
 function show(view) {
+  if (view !== 'login' && OWNER_VIEWS.has(view) && !isOwner()) view = 'orders'; // сотруднику — без денег и настроек
   if (view !== 'login') current = view;
+  $('switch').querySelectorAll('[data-owner]').forEach((b) => { b.hidden = !isOwner(); });
   $('loginView').hidden = view !== 'login';
   VIEWS.forEach((v) => { $(`${v}View`).hidden = view !== v; });
   $('switch').hidden = view === 'login';
@@ -94,6 +99,22 @@ function renderItem(it) {
 }
 
 async function load() {
+  try {
+    me = await api('/api/admin/me');
+    $('who').textContent = me.role === 'owner' ? `${me.name} · полный доступ` : `${me.name} · сотрудник${me.demo ? ' (пробный)' : ''}`;
+    show(current ?? (isOwner() ? 'finance' : 'orders'));
+    openView(current);
+  } catch (error) {
+    storage.clear();
+    token = null;
+    me = null;
+    show('login');
+    loadDemoLogins();
+    if (error.status !== 401) $('loginError').textContent = error.message;
+  }
+}
+
+async function loadFeedback() {
   $('listError').textContent = '';
   $('summary').textContent = 'Загружаем…';
   try {
@@ -101,26 +122,27 @@ async function load() {
     items = data.items;
     const notif = data.notifications === 'telegram' ? 'уведомления в Telegram включены' : 'уведомления выключены';
     $('summary').textContent = `${data.total} ${plural(data.total, ['отзыв', 'отзыва', 'отзывов'])} · ${notif}`;
-    show(current);
     render();
-    api('/api/admin/me').then((me) => { $('who').textContent = `${me.name}${me.role === 'admin' ? ' · админ' : ''}`; }).catch(() => {});
-    openView(current);
   } catch (error) {
-    if (error.status === 401) {
-      storage.clear();
-      token = null;
-      show('login');
-      $('loginError').textContent = 'Неверный пароль';
-      return;
-    }
-    if (error.status === 503 || error.status === 429) {
-      show('login');
-      $('loginError').textContent = error.message;
-      return;
-    }
+    if (error.status === 401) return load();
     $('summary').textContent = '';
     $('listError').textContent = `Не удалось загрузить отзывы: ${error.message}`;
   }
+}
+
+/** Пробные сотрудники на экране входа (если на сервере DEMO_ACCOUNTS=1). */
+async function loadDemoLogins() {
+  try {
+    const demo = await fetch('/api/admin/demo').then((r) => r.json());
+    $('demoLogins').hidden = !demo.enabled;
+    if (!demo.enabled) return;
+    $('demoPassword').textContent = demo.password;
+    $('demoList').replaceChildren(...demo.accounts.map((a) => {
+      const b = el('button', { type: 'button', className: 'ghost', textContent: `${a.name} — ${a.login}` });
+      b.addEventListener('click', () => { $('login').value = a.login; $('token').value = demo.password; $('loginForm').requestSubmit(); });
+      return b;
+    }));
+  } catch { /* без демо — просто форма */ }
 }
 
 // ---------- клиенты ----------
@@ -290,7 +312,7 @@ function renderVisit(v) {
   const error = node.querySelector('.user__error');
   if (v.status === 'paid' && !v.usedAt) {
     actions.append(actionButton('Отметить вход', 'btn', () => api(`/api/admin/visits/${v.id}/redeem`, { method: 'POST', body: {} }), error, loadVisits));
-  } else if (v.status === 'pending') {
+  } else if (v.status === 'pending' && isOwner()) {
     actions.append(actionButton('Подтвердить оплату', 'btn', () => api(`/api/admin/visits/${v.id}/confirm`, { method: 'POST', body: {} }), error, loadVisits));
   }
   return node;
@@ -446,16 +468,36 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
-$('loginForm').addEventListener('submit', (event) => {
+$('loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  token = $('token').value.trim();
-  if (!token) return;
-  storage.set(token);
   $('loginError').textContent = '';
-  load();
+  const button = $('loginForm').querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login: $('login').value.trim() || 'owner', password: $('token').value }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+    token = data.token;
+    storage.set(token);
+    $('token').value = '';
+    current = null;
+    await load();
+  } catch (error) {
+    $('loginError').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
 });
 
 function openView(view) {
+  if (view === 'list') loadFeedback();
+  if (view === 'finance') loadFinance();
+  if (view === 'staff') loadStaff();
+  if (view === 'activity') loadActivity();
+  if (view === 'settings') loadSettings();
   if (view === 'users') loadUsers();
   if (view === 'visits') loadVisits();
   if (view === 'payments') loadPayments();
@@ -522,7 +564,7 @@ function renderOrder(o) {
   if (o.status === 'paid' && !o.usedAt) {
     actions.append(actionButton('Выдать / отметить вход', 'btn', () => api(`/api/admin/checkout/${o.id}/redeem`, { method: 'POST', body: {} }), error, reload));
   }
-  if (o.status === 'pending' || o.status === 'expired') {
+  if ((o.status === 'pending' || o.status === 'expired') && isOwner()) { // деньги подтверждает только владелец
     actions.append(actionButton(o.claim ? 'Подтвердить перевод' : 'Оплачено на кассе', 'btn', () => api(`/api/admin/checkout/${o.id}/confirm`, { method: 'POST', body: {} }), error, reload));
     const reject = el('button', { type: 'button', className: 'ghost danger-text', textContent: 'Отклонить' });
     reject.addEventListener('click', () => {
@@ -637,12 +679,14 @@ document.querySelectorAll('[data-day]').forEach((b) => b.addEventListener('click
 $('logout').addEventListener('click', () => {
   storage.clear();
   token = null;
+  me = null;
   items = [];
   $('token').value = '';
   show('login');
+  loadDemoLogins();
 });
 
-$('refresh').addEventListener('click', load);
+$('refresh').addEventListener('click', loadFeedback);
 $('usersRefresh').addEventListener('click', loadUsers);
 $('visitsRefresh').addEventListener('click', loadVisits);
 $('userSearch').addEventListener('input', renderUsers);
@@ -660,5 +704,174 @@ $('switch').addEventListener('click', (event) => {
 $('search').addEventListener('input', render);
 $('exportCsv').addEventListener('click', exportCsv);
 
+// ---------- владелец: финансы ----------
+
+const money = (n) => `${Math.round(n).toLocaleString('ru-RU')} ₸`;
+const METHOD_NAMES = { card: 'Картой на сайте', transfer: 'Перевод на карту', kaspi: 'Kaspi', desk: 'На кассе по коду' };
+
+async function loadFinance() {
+  $('financeError').textContent = '';
+  try {
+    const f = await api('/api/admin/finance');
+    const kpi = (label, p, note) => el('div', { className: 'card kpi' },
+      el('span', { className: 'muted', textContent: label }),
+      el('b', { textContent: money(p.online) }),
+      el('small', { className: 'muted', textContent: `онлайн · всего с кассой ${money(p.total)} · ${p.count} ${plural(p.count, ['оплата', 'оплаты', 'оплат'])}` }),
+      note ? el('small', { className: 'muted', textContent: note }) : null);
+    const m = f.periods.month.methods;
+    $('financeKpis').replaceChildren(
+      kpi('Сегодня', f.periods.today), kpi('7 дней', f.periods.week), kpi('30 дней', f.periods.month), kpi('За всё время', f.periods.all),
+      el('div', { className: 'card kpi kpi--wide' },
+        el('span', { className: 'muted', textContent: 'За 30 дней по способам оплаты' }),
+        el('ul', { className: 'methods' }, ...Object.entries(METHOD_NAMES).map(([k, label]) => el('li', {}, el('span', { textContent: label }), el('b', { textContent: money(m[k] ?? 0) })))),
+        f.pending.count ? el('small', { className: 'warn-text', textContent: `Ждут проверки перевода: ${f.pending.count} на ${money(f.pending.total)} — раздел «Оплаты»` }) : null),
+    );
+    const max = Math.max(1, ...f.days.map((d) => d.total));
+    $('financeChart').replaceChildren(...f.days.map((d) => {
+      const col = el('div', { className: 'chart__col', title: `${d.date}: ${money(d.total)} (онлайн ${money(d.online)})` });
+      const desk = el('span', { className: 'chart__desk' });
+      const online = el('span', { className: 'chart__online' });
+      desk.style.height = `${((d.total - d.online) / max) * 100}%`;
+      online.style.height = `${(d.online / max) * 100}%`;
+      col.append(desk, online, el('small', { textContent: d.date.slice(8) }));
+      return col;
+    }));
+    $('financeRecent').replaceChildren(...(f.recent.length ? f.recent.map((x) => el('li', {},
+      el('span', { textContent: `${visitFmt.format(new Date(x.at))} · ${x.kind} ${x.code ?? ''}` }),
+      el('span', { className: 'muted', textContent: METHOD_NAMES[x.method] ?? x.method }),
+      el('b', { textContent: money(x.amount) }))) : [el('li', { className: 'muted', textContent: 'Оплат пока нет.' })]));
+  } catch (error) {
+    if (error.status === 401) return load();
+    $('financeError').textContent = `Не удалось загрузить финансы: ${error.message}`;
+  }
+}
+
+// ---------- владелец: сотрудники ----------
+
+let staffList = [];
+
+async function loadStaff() {
+  $('staffError').textContent = '';
+  try {
+    const data = await api('/api/admin/staff');
+    staffList = data.items;
+    $('staffFeed').replaceChildren(...staffList.map(renderStaff));
+    $('staffNote').textContent = [
+      data.env.length ? `Постоянные входы из Render (STAFF_LOGINS): ${data.env.join(', ')} — логин = имя.` : '',
+      data.demoPassword ? `Пробные сотрудники включены (DEMO_ACCOUNTS=1), пароль ${data.demoPassword}. Перед запуском для клиентов поставьте DEMO_ACCOUNTS=0.` : '',
+    ].filter(Boolean).join(' ');
+  } catch (error) {
+    if (error.status === 401) return load();
+    $('staffError').textContent = error.message;
+  }
+}
+
+function renderStaff(s) {
+  const error = el('p', { className: 'error user__error', role: 'alert' });
+  const pill = el('span', { className: 'pill', textContent: s.active ? (s.demo ? 'пробный' : 'работает') : 'отключён' });
+  pill.dataset.code = s.active ? 'active' : 'cancelled';
+  const actions = el('div', { className: 'user__actions' });
+  if (!s.demo) {
+    const toggle = el('button', { type: 'button', className: 'ghost', textContent: s.active ? 'Отключить' : 'Включить' });
+    toggle.addEventListener('click', () => runAction(toggle, () => api(`/api/admin/staff/${s.id}`, { method: 'PATCH', body: { active: !s.active } }), error, loadStaff));
+    const pass = el('button', { type: 'button', className: 'ghost', textContent: 'Новый пароль' });
+    pass.addEventListener('click', () => {
+      const password = prompt(`Новый пароль для ${s.name} (от 8 символов):`);
+      if (password) runAction(pass, () => api(`/api/admin/staff/${s.id}`, { method: 'PATCH', body: { password } }), error, loadStaff);
+    });
+    const del = el('button', { type: 'button', className: 'ghost danger-text', textContent: 'Удалить' });
+    del.addEventListener('click', () => {
+      if (confirm(`Удалить сотрудника ${s.name}? Войти он больше не сможет.`)) runAction(del, () => api(`/api/admin/staff/${s.id}`, { method: 'DELETE' }), error, loadStaff);
+    });
+    actions.append(toggle, pass, del);
+  }
+  const log = el('button', { type: 'button', className: 'ghost', textContent: 'Журнал' });
+  log.addEventListener('click', () => { $('activityStaff').value = s.id; show('activity'); loadActivity(); });
+  actions.append(log);
+  return el('li', { className: 'card item' },
+    el('div', { className: 'item__meta' },
+      el('span', { className: 'avatar', textContent: (s.name[0] ?? '?').toUpperCase() }),
+      el('div', {}, el('strong', { className: 'item__name', textContent: s.name }),
+        el('span', { className: 'muted', textContent: `логин ${s.login} · ${s.lastLoginAt ? `последний вход ${visitFmt.format(new Date(s.lastLoginAt))}` : 'ещё не входил'}` })),
+      pill),
+    actions, error);
+}
+
+$('staffForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  $('staffFormError').textContent = '';
+  try {
+    await api('/api/admin/staff', { method: 'POST', body: { name: form.elements.name.value, login: form.elements.login.value, password: form.elements.password.value } });
+    form.reset();
+    loadStaff();
+  } catch (error) {
+    $('staffFormError').textContent = error.message;
+  }
+});
+
+// ---------- владелец: журнал ----------
+
+async function loadActivity() {
+  $('activityError').textContent = '';
+  try {
+    if (!staffList.length) staffList = (await api('/api/admin/staff')).items;
+    const select = $('activityStaff');
+    const chosen = select.value;
+    select.replaceChildren(new Option('Все', ''), new Option('Владелец', 'owner'), ...staffList.map((s) => new Option(s.name, s.id)));
+    select.value = chosen;
+    const { items: log } = await api(`/api/admin/activity?limit=500${chosen ? `&staff=${encodeURIComponent(chosen)}` : ''}`);
+    $('activityFeed').replaceChildren(...log.map((x) => el('li', { className: `log__item${x.role === 'owner' ? ' log__item--owner' : ''}` },
+      el('time', { className: 'muted', dateTime: x.at, textContent: visitFmt.format(new Date(x.at)) }),
+      el('b', { textContent: x.name }),
+      el('span', { textContent: x.action }),
+      x.target ? el('span', { className: 'muted', textContent: x.target }) : null)));
+    $('activityEmpty').hidden = log.length > 0;
+  } catch (error) {
+    if (error.status === 401) return load();
+    $('activityError').textContent = error.message;
+  }
+}
+$('activityStaff').addEventListener('change', loadActivity);
+$('activityRefresh').addEventListener('click', loadActivity);
+$('financeRefresh').addEventListener('click', loadFinance);
+
+// ---------- владелец: реквизиты оплаты ----------
+
+async function loadSettings() {
+  $('settingsError').textContent = '';
+  $('settingsOk').textContent = '';
+  try {
+    const data = await api('/api/admin/settings');
+    const form = $('settingsForm');
+    for (const [k, v] of Object.entries(data.payment)) {
+      if (form.elements[k]) form.elements[k].value = k === 'cardNumber' && v ? v.replace(/(\d{4})(?=\d)/g, '$1 ') : (v ?? '');
+    }
+    $('settingsCard').textContent = data.card.enabled
+      ? `Подключено (Public ID ${data.card.publicId}). Клиенты платят картой прямо на сайте, оплата подтверждается сама.`
+      : 'Не подключено. Нужен договор интернет-эквайринга с TipTop Pay (tiptoppay.kz): впишите Public ID в backend/payment.config.js, а API Secret — в Render → Environment (TIPTOPPAY_API_SECRET). Пока этого нет, «Банковской картой» на сайте — это перевод с карты клиента на вашу карту выше.';
+    $('settingsPersist').hidden = data.persistent;
+    $('settingsPersist').textContent = 'Облачное хранилище (Upstash) не подключено: бесплатный Render стирает данные при перезапуске, и эти настройки вернутся к значениям из backend/payment.config.js. Чтобы номер карты не сбрасывался — подключите Upstash или впишите его в Render → Environment → PAY_CARD_NUMBER.';
+  } catch (error) {
+    if (error.status === 401) return load();
+    $('settingsError').textContent = error.message;
+  }
+}
+
+$('settingsForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  $('settingsError').textContent = '';
+  $('settingsOk').textContent = '';
+  try {
+    const body = Object.fromEntries(['cardNumber', 'cardBank', 'cardHolder', 'kaspiPhone', 'kaspiReceiver', 'kaspiPayLink'].map((k) => [k, form.elements[k].value]));
+    await api('/api/admin/settings', { method: 'PUT', body });
+    $('settingsOk').textContent = 'Сохранено — на сайте уже действует.';
+    loadSettings().then(() => { $('settingsOk').textContent = 'Сохранено — на сайте уже действует.'; });
+  } catch (error) {
+    $('settingsError').textContent = error.message;
+  }
+});
+
 if (token) load();
-else show('login');
+else { show('login'); loadDemoLogins(); }

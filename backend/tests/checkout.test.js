@@ -203,7 +203,7 @@ describe('корзина: заказ и оплата картой (PAYMENT_MODE=
 
   test('админка: сотрудник входит своим паролем, видит заказы и отмечает выдачу', async () => {
     const staff = { Authorization: 'Bearer erzhan-pass-123' };
-    assert.deepEqual(await fetch(`${srv.base}/api/admin/me`, { headers: staff }).then((r) => r.json()), { name: 'Ержан', role: 'staff' });
+    assert.deepEqual(await fetch(`${srv.base}/api/admin/me`, { headers: staff }).then((r) => r.json()), { id: 'env:Ержан', name: 'Ержан', role: 'staff' });
     assert.equal((await fetch(`${srv.base}/api/admin/me`, { headers: { Authorization: 'Bearer wrong-password' } })).status, 401);
 
     const list = await fetch(`${srv.base}/api/admin/checkout`, { headers: staff }).then((r) => r.json());
@@ -229,7 +229,7 @@ describe('корзина: перевод на карту и подтвержде
     assert.equal(methods.card.enabled, false);
   });
 
-  test('«Я оплатил» → сотрудник подтверждает → paid, кто подтвердил — в заказе', async () => {
+  test('«Я оплатил» → сотруднику нельзя, владелец подтверждает → paid, кто подтвердил — в заказе', async () => {
     const res = await fetch(`${srv.base}/api/checkout`, json({ cart: [{ id: 'pool:adult:2', qty: 2 }], contact, consent: true }, { Origin: srv.base, ...idem() }));
     const { order } = await res.json();
 
@@ -240,13 +240,16 @@ describe('корзина: перевод на карту и подтвержде
     assert.equal((await claim.json()).order.claim.method, 'transfer');
 
     const staff = { Authorization: 'Bearer anna-pass-1234' };
-    const confirm = await fetch(`${srv.base}/api/admin/checkout/${order.id}/confirm`, json({}, staff));
+    const denied = await fetch(`${srv.base}/api/admin/checkout/${order.id}/confirm`, json({}, staff));
+    assert.equal(denied.status, 403, 'деньги подтверждает только владелец');
+
+    const confirm = await fetch(`${srv.base}/api/admin/checkout/${order.id}/confirm`, json({}, { Authorization: 'Bearer test-token' }));
     const body = await confirm.json();
     assert.equal(confirm.status, 200);
     assert.equal(body.order.status, 'paid');
     assert.equal(body.order.method, 'transfer');
     const list = await fetch(`${srv.base}/api/admin/checkout`, { headers: staff }).then((r) => r.json());
-    assert.equal(list.items.find((o) => o.id === order.id).paidBy, 'Анна');
+    assert.equal(list.items.find((o) => o.id === order.id).paidBy, 'Владелец');
   });
 
   test('отклонение перевода — cancelled с причиной', async () => {

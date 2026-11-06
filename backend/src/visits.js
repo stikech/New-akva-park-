@@ -355,7 +355,7 @@ export function createVisitRoutes({
     },
 
     'POST /api/admin/visits/:id/confirm': async (req, res, { params }) => {
-      requireAdmin(req);
+      requireAdmin(req, { owner: true });
       const id = String(params.id ?? '');
       const visit = ID_RE.test(id) ? await visits.byId(id) : null;
       if (!visit) throw new HttpError(404, 'Визит не найден');
@@ -382,7 +382,7 @@ export function createVisitRoutes({
     },
 
     'POST /api/admin/visits/:id/reject': async (req, res, { params }) => {
-      requireAdmin(req);
+      requireAdmin(req, { owner: true });
       const id = String(params.id ?? '');
       const body = await readJsonBody(req).catch(() => ({}));
       const reason = String(body?.reason ?? '').trim().slice(0, 200) || 'Перевод не найден';

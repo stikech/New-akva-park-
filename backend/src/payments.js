@@ -355,7 +355,7 @@ export function createPaymentRoutes({
     },
 
     'POST /api/admin/orders/:id/confirm': async (req, res, { params }) => {
-      requireAdmin(req);
+      requireAdmin(req, { owner: true });
       const id = String(params.id ?? '');
       const order = ID_RE.test(id) ? await orders.byIdOrder(id) : null;
       if (!order) throw new HttpError(404, 'Заказ не найден');
@@ -389,7 +389,7 @@ export function createPaymentRoutes({
     },
 
     'POST /api/admin/orders/:id/reject': async (req, res, { params }) => {
-      requireAdmin(req);
+      requireAdmin(req, { owner: true });
       const id = String(params.id ?? '');
       const body = await readJsonBody(req).catch(() => ({}));
       const reason = String(body?.reason ?? '').trim().slice(0, 200) || 'Перевод не найден';

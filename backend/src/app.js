@@ -13,7 +13,8 @@
  *   /api/bookings/*             — запись на занятия (bookings.js)
  *   /api/visits/*               — онлайн-билеты аквапарка (прежний поток, visits.js)
  *   /api/checkout/*             — корзина: заказ и оплата картой / переводом (checkout.js)
- *   GET  /api/admin/me          — кто вошёл в админку (администратор или сотрудник)
+ *   GET  /api/admin/me          — кто вошёл в админку (владелец или сотрудник)
+ *   /api/admin/login, staff, activity, finance, settings — роли и владелец (staff.js)
  *   GET  /admin                 — страница администратора
  *   GET  /account[/раздел]      — личный кабинет: /account/overview, /account/shop…
  *   GET  /                      — главная: hero и плитки разделов
@@ -42,6 +43,8 @@ import { createVisitStore } from './visit-store.js';
 import { kaspiInfo } from './kaspi.js';
 import { createCheckoutRoutes, paymentMethods } from './checkout.js';
 import { createCheckoutStore } from './checkout-store.js';
+import { actionLabel, actionTarget, createActivityLog, createPaymentSettings, createStaffRoutes, createStaffStore } from './staff.js';
+import { deriveKey } from './sealed-token.js';
 
 /** Разделы сайта — отдельные страницы frontend/<раздел>.html, на них ведут кнопки шапки. */
 const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'shop', 'ticket', 'offer', 'checkout'];
@@ -51,11 +54,13 @@ const sha256 = (s) => createHash('sha256').update(s).digest();
 
 export function createApp({
   config, store, notifier, log = console, sitePayload = buildSitePayload(),
-  accounts = createAccountStore(config.dataDir),
+  accounts = createAccountStore(config.dataDir, { sessionKey: config.sessionSecret }),
   orders = createOrderStore(config.dataDir),
   bookings = createBookingStore(config.dataDir),
   visits = createVisitStore(config.dataDir),
   checkout = createCheckoutStore(config.dataDir),
+  staffStore = createStaffStore(config.dataDir),
+  activity = createActivityLog(config.dataDir),
   paymentGateway = null,
   journal = createAudit(config.dataDir),
   backup = { enabled: false },
@@ -90,21 +95,34 @@ export function createApp({
   // Сравниваем хеши фиксированной длины — постоянное время независимо от длины ввода.
   const sameSecret = (a, b) => timingSafeEqual(sha256(a), sha256(b));
   const staffLogins = config.staff ?? [];
+  const settings = createPaymentSettings(config, config.dataDir);
+  const staffRoutes = createStaffRoutes({
+    config, staff: staffStore, activity, key: deriveKey(config.sessionSecret), requireAdmin,
+    checkout, orders, visits, settings, log, ...extraClock,
+  });
 
-  /** Кто вошёл: { name, role: 'admin' | 'staff' } или null. Пароль сотрудника — из STAFF_LOGINS. */
+  /**
+   * Кто вошёл: { id, name, role: 'owner' | 'staff', demo? } или null.
+   * Токен: ADMIN_TOKEN (владелец), токен входа из /api/admin/login или пароль из STAFF_LOGINS.
+   */
   function whoIs(req) {
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
     if (!token) return null;
-    if (config.adminToken && sameSecret(token, config.adminToken)) return { name: 'Администратор', role: 'admin' };
+    if (config.adminToken && sameSecret(token, config.adminToken)) return { id: 'owner', name: 'Владелец', role: 'owner' };
+    const sealed = staffRoutes.fromToken(token);
+    if (sealed) return sealed;
     // Проверяем все пароли без раннего выхода — время ответа не выдаёт, чей пароль ближе.
     let found = null;
-    for (const s of staffLogins) if (sameSecret(token, s.password) && !found) found = { name: s.name, role: 'staff' };
+    for (const s of staffLogins) if (sameSecret(token, s.password) && !found) found = { id: `env:${s.name}`, name: s.name, role: 'staff' };
     return found;
   }
 
-  /** Бросает 503/401/429, если запрос не от администратора или сотрудника. Возвращает, кто вошёл. */
-  function requireAdmin(req) {
+  /**
+   * Бросает 503/401/403/429, если запрос не от владельца или сотрудника. Возвращает, кто вошёл.
+   * { owner: true } — только владелец (деньги, настройки оплаты, сотрудники, журнал).
+   */
+  function requireAdmin(req, { owner = false } = {}) {
     if (!config.adminToken && !staffLogins.length) {
       throw new HttpError(503, 'Админка не настроена: задайте переменную ADMIN_TOKEN');
     }
@@ -114,6 +132,8 @@ export function createApp({
       if (!limit.ok) throw new HttpError(429, 'Слишком много попыток. Попробуйте позже.');
       throw new HttpError(401, 'Неверный пароль');
     }
+    req.adminWho = who;
+    if (owner && who.role !== 'owner') throw new HttpError(403, 'Это может только владелец');
     return who;
   }
 
@@ -131,8 +151,13 @@ export function createApp({
     },
 
     'GET /api/admin/status': (req, res) => {
-      requireAdmin(req);
+      const who = requireAdmin(req);
+      if (who.role !== 'owner') {
+        // сотруднику — только то, что нужно для работы с клиентами
+        return sendJson(res, 200, { uptimeSec: Math.round((Date.now() - startedAt) / 1000), who, backup: backup.enabled ? 'upstash' : 'off' });
+      }
       sendJson(res, 200, {
+        who,
         uptimeSec: Math.round((Date.now() - startedAt) / 1000),
         payment: kaspiInfo(config),
         methods: paymentMethods(config),
@@ -203,12 +228,13 @@ export function createApp({
     ...bookingRoutes.routes,
     ...visitRoutes.routes,
     ...checkoutRoutes.routes,
+    ...staffRoutes.routes,
   };
 
   // Динамические маршруты с параметрами: /api/orders/:id, /api/bookings/:key.
   // Сегменты `:имя` передаются обработчику в params; расширять — по образцу payments.js.
   const dynamicRoutes = [];
-  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic, checkoutRoutes.dynamic]) {
+  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic, checkoutRoutes.dynamic, staffRoutes.dynamic]) {
     for (const [key, handler] of Object.entries(definition)) {
       const [method, pattern] = key.split(' ');
       dynamicRoutes.push({ method, segments: pattern.split('/').filter(Boolean), handler });
@@ -284,10 +310,23 @@ export function createApp({
     throw new HttpError(404, 'Страница не найдена');
   }
 
+  /** Журнал: каждое изменяющее действие в админке — кто, что, с чем (видит владелец). */
+  function logStaffAction(req, res) {
+    const who = req.adminWho;
+    if (!who || req.method === 'GET' || res.statusCode >= 400 || !req.url.startsWith('/api/admin/')) return;
+    const { pathname } = new URL(req.url, 'http://x');
+    activity.record({
+      staffId: who.id, name: who.name, role: who.role, demo: Boolean(who.demo),
+      action: actionLabel(req.method, pathname), target: actionTarget(res.sentBody, req.parsedBody),
+      method: req.method, path: pathname,
+    });
+  }
+
   return async function requestListener(req, res) {
     const started = performance.now();
     try {
       await handle(req, res);
+      logStaffAction(req, res);
     } catch (error) {
       const status = error instanceof HttpError ? error.status : 500;
       if (status === 500) log.error('[http] ошибка обработки запроса:', error);

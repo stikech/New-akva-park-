@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/assets/css/tokens.css">
-  <link rel="stylesheet" href="/admin/admin.css?v=3">
-  <script type="module" src="/admin/admin.js?v=4"></script>
+  <link rel="stylesheet" href="/admin/admin.css?v=4">
+  <script type="module" src="/admin/admin.js?v=5"></script>
 </head>
 <body>
   <header class="top">
@@ -29,22 +29,34 @@
   <main class="wrap">
     <section class="card login" id="loginView" hidden>
       <h1>Вход</h1>
-      <p class="muted">Для сотрудников аквапарка. Введите свой пароль (выдаёт администратор) или пароль администратора — <code>ADMIN_TOKEN</code>.</p>
-      <form id="loginForm" autocomplete="off">
+      <p class="muted">Владелец: логин <code>owner</code>, пароль — <code>ADMIN_TOKEN</code> из Render → Environment.
+        Сотрудники: логин и пароль, которые выдал владелец.</p>
+      <form id="loginForm" autocomplete="on">
+        <label for="login">Логин</label>
+        <input id="login" name="login" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="owner">
         <label for="token">Пароль</label>
         <input id="token" name="token" type="password" required autocomplete="current-password">
         <p class="error" id="loginError" role="alert"></p>
         <button class="btn" type="submit">Войти</button>
       </form>
+      <div class="demo-logins" id="demoLogins" hidden>
+        <p class="muted"><b>Пробные сотрудники</b> — чтобы посмотреть, как работает админка у персонала.
+          Телефоны и почты настоящих клиентов им не видны. Пароль: <code id="demoPassword"></code></p>
+        <div class="demo-logins__list" id="demoList"></div>
+      </div>
     </section>
 
     <nav class="switch" id="switch" hidden aria-label="Разделы админки">
-      <button type="button" data-view="payments" aria-pressed="true">Оплаты <span class="count" id="paymentsCount" hidden></span></button>
+      <button type="button" data-view="finance" aria-pressed="false" data-owner>Финансы</button>
+      <button type="button" data-view="payments" aria-pressed="true" data-owner>Оплаты <span class="count" id="paymentsCount" hidden></span></button>
       <button type="button" data-view="orders" aria-pressed="false">Заказы</button>
       <button type="button" data-view="classes" aria-pressed="false">Занятия</button>
       <button type="button" data-view="users" aria-pressed="false">Клиенты и абонементы</button>
       <button type="button" data-view="visits" aria-pressed="false">Билеты (старые)</button>
       <button type="button" data-view="list" aria-pressed="false">Отзывы</button>
+      <button type="button" data-view="staff" aria-pressed="false" data-owner>Сотрудники</button>
+      <button type="button" data-view="activity" aria-pressed="false" data-owner>Журнал</button>
+      <button type="button" data-view="settings" aria-pressed="false" data-owner>Настройки оплаты</button>
     </nav>
 
     <section id="paymentsView" hidden>
@@ -69,6 +81,90 @@
         <p><strong>Нет оплат, ожидающих проверки.</strong></p>
         <p class="muted">Когда клиент нажмёт «Я оплатил», заказ появится здесь (и придёт в Telegram, если он настроен).</p>
       </div>
+    </section>
+
+    <section id="financeView" hidden>
+      <div class="head">
+        <div>
+          <h1>Финансы</h1>
+          <p class="muted">Деньги с сайта: оплаты картой, переводы на карту и Kaspi, заказы, оплаченные на кассе по коду.</p>
+        </div>
+        <div class="tools"><button class="ghost" id="financeRefresh" type="button">Обновить</button></div>
+      </div>
+      <p class="error" id="financeError" role="alert"></p>
+      <div class="kpis" id="financeKpis"></div>
+      <div class="card chart-card">
+        <h2>Последние 30 дней</h2>
+        <div class="chart" id="financeChart" role="img" aria-label="Выручка по дням"></div>
+        <p class="muted chart-legend"><span class="dot dot--online"></span>онлайн (карта, перевод, Kaspi) <span class="dot dot--desk"></span>на кассе по коду заказа</p>
+      </div>
+      <div class="card">
+        <h2>Последние оплаты</h2>
+        <ol class="recent" id="financeRecent"></ol>
+      </div>
+    </section>
+
+    <section id="staffView" hidden>
+      <div class="head">
+        <div>
+          <h1>Сотрудники</h1>
+          <p class="muted">Сотрудник видит клиентов и их данные, оформляет и снимает абонементы, ведёт записи на занятия, выдаёт заказы на входе.
+            Подтверждать и отклонять оплаты, менять реквизиты и смотреть финансы может только владелец.</p>
+        </div>
+      </div>
+      <form class="card staff-form" id="staffForm" autocomplete="off">
+        <h2>Новый сотрудник</h2>
+        <label>Имя <input name="name" required maxlength="60" placeholder="Мадина (ресепшен)"></label>
+        <label>Логин <input name="login" required maxlength="32" placeholder="madina" autocapitalize="none" spellcheck="false"></label>
+        <label>Пароль <input name="password" required minlength="8" placeholder="от 8 символов" autocomplete="new-password"></label>
+        <button class="btn" type="submit">Добавить</button>
+        <p class="error" id="staffFormError" role="alert"></p>
+      </form>
+      <p class="error" id="staffError" role="alert"></p>
+      <ol class="feed" id="staffFeed"></ol>
+      <p class="muted howto" id="staffNote"></p>
+    </section>
+
+    <section id="activityView" hidden>
+      <div class="head">
+        <div>
+          <h1>Журнал действий</h1>
+          <p class="muted">Кто из сотрудников что сделал: вход, абонементы, записи, выдача заказов, подтверждение оплат.</p>
+        </div>
+        <div class="tools">
+          <select id="activityStaff" aria-label="Сотрудник"><option value="">Все</option></select>
+          <button class="ghost" id="activityRefresh" type="button">Обновить</button>
+        </div>
+      </div>
+      <p class="error" id="activityError" role="alert"></p>
+      <ol class="log" id="activityFeed"></ol>
+      <div class="empty card" id="activityEmpty" hidden><p><strong>Пока ничего.</strong></p></div>
+    </section>
+
+    <section id="settingsView" hidden>
+      <div class="head">
+        <div>
+          <h1>Настройки оплаты</h1>
+          <p class="muted">Куда клиенты платят. Меняется сразу, без перезапуска сайта.</p>
+        </div>
+      </div>
+      <p class="warn card" id="settingsPersist" hidden></p>
+      <form class="card settings-form" id="settingsForm" autocomplete="off">
+        <h2>Карта для переводов</h2>
+        <p class="muted">Клиент выбирает «Банковской картой» и переводит деньги с любой своей карты на эту. Вы подтверждаете поступление в «Оплатах».</p>
+        <label>Номер карты <input name="cardNumber" inputmode="numeric" placeholder="0000 0000 0000 0000" maxlength="23"></label>
+        <label>Банк <input name="cardBank" placeholder="Kaspi Gold" maxlength="60"></label>
+        <label>Имя получателя <input name="cardHolder" placeholder="Айгерим С." maxlength="60"></label>
+        <h2>Kaspi по номеру телефона</h2>
+        <label>Номер Kaspi <input name="kaspiPhone" type="tel" placeholder="+7 777 123 45 67"></label>
+        <label>Получатель <input name="kaspiReceiver" placeholder="Аквапарк «Нептун»" maxlength="60"></label>
+        <label>Ссылка Kaspi Pay <small class="muted">— необязательно</small> <input name="kaspiPayLink" placeholder="https://pay.kaspi.kz/pay/…"></label>
+        <h2>Оплата картой на сайте (TipTop Pay)</h2>
+        <p class="muted" id="settingsCard"></p>
+        <div class="issue__actions"><button class="btn" type="submit">Сохранить</button></div>
+        <p class="error" id="settingsError" role="alert"></p>
+        <p class="ok" id="settingsOk" role="status"></p>
+      </form>
     </section>
 
     <section id="ordersView" hidden>

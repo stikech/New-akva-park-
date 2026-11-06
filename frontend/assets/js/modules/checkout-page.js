@@ -25,6 +25,9 @@ import { bindCopyButtons, pollUntilSettled } from './kaspi-pay.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const ORDERS_KEY = 'neptun-orders';
+/** Плашка «принимаем карты» — у способов оплаты и в корзине. */
+export const CARDS_BADGE = `<p class="cards-badge"><span class="cards-badge__logos" aria-hidden="true"><i>VISA</i><i>MC</i><i>Kaspi</i></span>
+  Принимаем оплату банковской картой — Visa, Mastercard, Kaspi Gold и карты любых банков Казахстана.</p>`;
 const DATE_FMT = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const STATUS = { pending: 'Ожидает оплаты', paid: 'Оплачен', cancelled: 'Отменён', expired: 'Истёк' };
 const METHOD = { card: 'картой на сайте', transfer: 'переводом на карту', kaspi: 'переводом Kaspi', desk: 'на кассе' };
@@ -149,13 +152,24 @@ export function initCheckoutPage(root) {
 
   // ---------- форма заказа ----------
 
-  function enabledMethods() {
+  /**
+   * Способы оплаты. «Банковской картой» есть всегда, когда аквапарк принимает карты:
+   * картой на сайте (TipTop Pay) или переводом с карты клиента на карту аквапарка.
+   */
+  function enabledMethods({ withDisabled = false } = {}) {
     const m = options.methods;
     const list = [];
-    if (m.card.enabled) list.push({ id: 'card', title: 'Картой на сайте', text: 'Visa, Mastercard, Kaspi Gold и другие · 3-D Secure' });
-    if (m.transfer.enabled) list.push({ id: 'transfer', title: 'Переводом на карту', text: `${m.transfer.bank ? `${m.transfer.bank} · ` : ''}из приложения любого банка` });
+    if (m.card.enabled) list.push({ id: 'card', title: 'Банковской картой', text: 'Visa, Mastercard, Kaspi Gold — прямо на сайте, 3-D Secure' });
+    if (m.transfer.enabled) {
+      list.push(m.card.enabled
+        ? { id: 'transfer', title: 'Переводом на карту', text: `${m.transfer.bank ? `${m.transfer.bank} · ` : ''}из приложения любого банка` }
+        : { id: 'transfer', title: 'Банковской картой', text: `Visa, Mastercard, Kaspi Gold — перевод с вашей карты на карту аквапарка${m.transfer.bank ? ` (${m.transfer.bank})` : ''}` });
+    }
     if (m.kaspi.enabled) list.push({ id: 'kaspi', title: 'Переводом Kaspi', text: 'по номеру телефона' });
-    if (!list.length) list.push({ id: 'desk', title: 'На кассе', text: 'назовите код заказа на кассе аквапарка' });
+    if (!list.length) {
+      if (withDisabled) list.push({ id: 'card-off', title: 'Банковской картой', text: 'скоро — аквапарк подключает оплату картой', disabled: true });
+      list.push({ id: 'desk', title: 'На кассе', text: 'назовите код заказа на кассе аквапарка' });
+    }
     return list;
   }
 
@@ -178,7 +192,9 @@ export function initCheckoutPage(root) {
       return;
     }
     const needs = cartNeeds(items.map((l) => describe(l)));
-    const methods = enabledMethods();
+    const methods = enabledMethods({ withDisabled: true });
+    const firstOn = methods.find((m) => !m.disabled)?.id;
+    const takesCards = options.methods.card.enabled || options.methods.transfer.enabled;
     const total = cartTotal(items);
     const maxDate = shiftDate(options.today, options.visitDaysAhead);
 
@@ -186,11 +202,20 @@ export function initCheckoutPage(root) {
       <div class="co-grid">
         <form class="co-form" novalidate>
           ${needs.account && !user ? `
-            <div class="co-alert">
-              <b>Абонемент привязывается к личному кабинету</b>
-              <p>Войдите или зарегистрируйтесь — после входа вернётесь сюда, корзина сохранится.</p>
-              <a class="btn primary" href="/account?next=${encodeURIComponent('/checkout')}">Войти или зарегистрироваться</a>
-            </div>` : ''}
+            <div class="co-alert" data-login-box>
+              <b>Абонемент привязывается к личному кабинету — войдите</b>
+              <div class="co-cols">
+                <div class="field"><label for="coLoginEmail">Почта</label>
+                  <input id="coLoginEmail" type="email" autocomplete="username" inputmode="email"></div>
+                <div class="field"><label for="coLoginPass">Пароль</label>
+                  <input id="coLoginPass" type="password" autocomplete="current-password"></div>
+              </div>
+              <p class="acc-status" data-kind="error" data-login-status role="alert"></p>
+              <div class="co-alert__actions">
+                <button class="btn primary" type="button" data-login>Войти</button>
+                <a class="btn ghost" href="/account?next=${encodeURIComponent('/checkout')}">Зарегистрироваться</a>
+              </div>
+            </div>` : user ? `<p class="co-signed">Вы вошли как <b>${escapeHtml(user.firstName ?? user.email)}</b> — абонемент появится в вашем кабинете.</p>` : ''}
 
           <fieldset class="co-step">
             <legend><span class="co-step__n">1</span> Контакты</legend>
@@ -219,13 +244,14 @@ export function initCheckoutPage(root) {
           <fieldset class="co-step">
             <legend><span class="co-step__n">${needs.visitDate ? 3 : 2}</span> Оплата</legend>
             <div class="co-methods" role="radiogroup" aria-label="Способ оплаты">
-              ${methods.map((m, i) => `
-                <label class="co-method">
-                  <input type="radio" name="method" value="${m.id}" ${i === 0 ? 'checked' : ''}>
-                  <span class="co-method__icon co-method__icon--${m.id}" aria-hidden="true"></span>
+              ${methods.map((m) => `
+                <label class="co-method${m.disabled ? ' co-method--off' : ''}">
+                  <input type="radio" name="method" value="${m.id}" ${m.id === firstOn ? 'checked' : ''} ${m.disabled ? 'disabled' : ''}>
+                  <span class="co-method__icon co-method__icon--${m.id === 'transfer' && !options.methods.card.enabled ? 'card' : m.id}" aria-hidden="true"></span>
                   <span><b>${m.title}</b><small>${escapeHtml(m.text)}</small></span>
                 </label>`).join('')}
             </div>
+            ${takesCards ? CARDS_BADGE : ''}
             <div data-method-panel></div>
           </fieldset>
 
@@ -250,11 +276,15 @@ export function initCheckoutPage(root) {
       </div>`;
 
     const form = $('.co-form', root);
+    $('[data-login]', form)?.addEventListener('click', () => loginInline(form));
+    $('#coLoginPass', form)?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); loginInline(form); } });
     // Контакты: из прошлого ввода, из кабинета или из прошлого заказа.
-    const saved = prev ?? store.get('neptun-contact', null) ?? {};
-    form.elements.name.value = saved.name ?? user?.firstName ?? '';
-    form.elements.phone.value = phoneMask(saved.phone ?? user?.phone ?? '');
-    form.elements.email.value = saved.email ?? user?.email ?? '';
+    // пустое поле не перекрывает данные кабинета (после входа на этой странице)
+    const stored = store.get('neptun-contact', null) ?? {};
+    const pick = (k, fromUser) => prev?.[k] || stored[k] || fromUser || '';
+    form.elements.name.value = pick('name', user?.firstName);
+    form.elements.phone.value = phoneMask(pick('phone', user?.phone));
+    form.elements.email.value = pick('email', user?.email);
     if (form.elements.visitDate) {
       form.elements.visitDate.value = prev?.visitDate ?? '';
       form.elements.visitDate.addEventListener('input', () => dateHint(form));
@@ -267,6 +297,36 @@ export function initCheckoutPage(root) {
     renderMethod(form);
     form.addEventListener('submit', (event) => { event.preventDefault(); submit(form); });
   }
+
+  /** Вход прямо на странице оплаты: корзина и введённые данные остаются на месте. */
+  async function loginInline(form) {
+    const status = $('[data-login-status]', form);
+    const btn = $('[data-login]', form);
+    btn.disabled = true;
+    status.textContent = '';
+    try {
+      await accountApi.login({ email: $('#coLoginEmail', form).value.trim(), password: $('#coLoginPass', form).value });
+      user = (await accountApi.me()).user;
+      document.dispatchEvent(new CustomEvent('neptun:signed-in'));
+      renderForm(true);
+    } catch (error) {
+      status.textContent = error.status === 401 ? 'Неверная почта или пароль' : error.message;
+      btn.disabled = false;
+    }
+  }
+
+  /** Вход мог случиться в другой вкладке или на /account (кнопка «назад») — перепроверяем. */
+  async function recheckUser() {
+    if (mode !== 'form') return;
+    const fresh = await accountApi.session()
+      .then((d) => (d.authenticated ? accountApi.me().then((m) => m.user) : null)).catch(() => user);
+    if (Boolean(fresh) !== Boolean(user) || fresh?.id !== user?.id) {
+      user = fresh;
+      renderForm(true);
+    }
+  }
+  window.addEventListener('pageshow', (event) => { if (event.persisted) recheckUser(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) recheckUser(); });
 
   function dateHint(form) {
     const hint = $('[data-date-hint]', form);
@@ -292,11 +352,11 @@ export function initCheckoutPage(root) {
     const label = $('[data-pay-label]', form);
     const total = cartTotal(lines());
     label.textContent = method === 'card' ? `Оплатить ${formatPrice(total)}`
-      : method === 'desk' ? 'Оформить заказ' : `Перейти к переводу · ${formatPrice(total)}`;
+      : method === 'desk' ? 'Оформить заказ' : `Перейти к оплате · ${formatPrice(total)}`;
     if (method !== 'card') {
       panel.innerHTML = method === 'desk'
         ? '<p class="note">Онлайн-оплата сейчас не подключена: оформите заказ, назовите код на кассе и оплатите картой или Kaspi QR.</p>'
-        : `<p class="note">На следующем шаге покажем ${method === 'kaspi' ? 'номер Kaspi' : 'номер карты'}, сумму и код заказа для комментария к переводу.</p>`;
+        : `<p class="note">${method === 'kaspi' ? 'На следующем шаге покажем номер Kaspi' : 'Оплата с вашей карты в приложении вашего банка: на следующем шаге покажем карту аквапарка'}, сумму и код заказа для комментария к переводу.</p>`;
       return;
     }
     cardFieldsInto(panel);

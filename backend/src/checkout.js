@@ -473,7 +473,7 @@ export function createCheckoutRoutes({
     },
 
     'POST /api/admin/checkout/:id/confirm': async (req, res, { params }) => {
-      const staff = requireAdmin(req);
+      const staff = requireAdmin(req, { owner: true });
       const order = await orderById(params.id);
       // Клиент не нажимал «Я оплатил» — значит, сотрудник принял оплату на кассе.
       const method = order.claim?.method ?? 'desk';
@@ -483,7 +483,7 @@ export function createCheckoutRoutes({
     },
 
     'POST /api/admin/checkout/:id/reject': async (req, res, { params }) => {
-      const staff = requireAdmin(req);
+      const staff = requireAdmin(req, { owner: true });
       const order = await orderById(params.id);
       const body = await readJsonBody(req).catch(() => ({}));
       const reason = String(body?.reason ?? '').trim().slice(0, 200) || 'Перевод не найден';

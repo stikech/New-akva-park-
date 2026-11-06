@@ -1,5 +1,7 @@
 /** Мелкие HTTP-помощники: JSON-ответы, чтение тела, заголовки безопасности, IP клиента. */
 
+import { maskPersonal } from './mask.js';
+
 export class HttpError extends Error {
   constructor(status, message, body) {
     super(message);
@@ -36,7 +38,10 @@ export const SECURITY_HEADERS = {
 };
 
 export function sendJson(res, status, body, headers = {}) {
-  const payload = JSON.stringify(body);
+  // Пробный сотрудник видит клиентов со скрытыми телефонами и почтами (staff.js, DEMO_ACCOUNTS).
+  const safe = res.req?.adminWho?.demo ? maskPersonal(body) : body;
+  res.sentBody = safe; // для журнала действий сотрудников (app.js)
+  const payload = JSON.stringify(safe);
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(payload),
@@ -65,7 +70,8 @@ export async function readJsonBody(req, { limitBytes = 16 * 1024 } = {}) {
   }
 
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    req.parsedBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return req.parsedBody;
   } catch {
     throw new HttpError(400, 'Некорректный JSON');
   }

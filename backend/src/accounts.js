@@ -83,6 +83,12 @@ export function createAccountRoutes({ config, accounts, requireUser, requireAdmi
 
   const clearCookie = (req) => sessionCookie(req, '', 0);
 
+  /** Обновлённый снимок аккаунта в cookie — чтобы после перезапуска сервера восстановились свежие данные. */
+  async function refreshedCookie(req) {
+    const fresh = await accounts.refreshSession?.(sessionToken(req));
+    return fresh ? { 'Set-Cookie': sessionCookie(req, fresh.token, fresh.maxAgeSec) } : {};
+  }
+
   function tooMany(limit) {
     return new HttpError(429, 'Слишком много попыток. Попробуйте позже.', {
       error: 'Слишком много попыток. Попробуйте позже.',
@@ -122,7 +128,7 @@ export function createAccountRoutes({ config, accounts, requireUser, requireAdmi
       const user = await accounts.userBySession(sessionToken(req));
       sendJson(res, 200, user
         ? { authenticated: true, user: { firstName: user.firstName, lang: user.lang } }
-        : { authenticated: false, demoAccounts });
+        : { authenticated: false, demoAccounts }, user ? await refreshedCookie(req) : {});
     },
 
     'POST /api/auth/register': async (req, res) => {
@@ -183,7 +189,7 @@ export function createAccountRoutes({ config, accounts, requireUser, requireAdmi
 
     'GET /api/account': async (req, res) => {
       const { user } = await requireUser(req);
-      sendJson(res, 200, { user: publicUser(user) });
+      sendJson(res, 200, { user: publicUser(user) }, await refreshedCookie(req));
     },
 
     'PATCH /api/account': async (req, res) => {
@@ -217,7 +223,7 @@ export function createAccountRoutes({ config, accounts, requireUser, requireAdmi
 
       await accounts.updateUser(user.id, { passwordHash: await hashPassword(next) });
       const ended = await accounts.deleteUserSessions(user.id, token);
-      sendJson(res, 200, { ok: true, endedSessions: ended });
+      sendJson(res, 200, { ok: true, endedSessions: ended }, { 'Set-Cookie': await startSession(req, user.id) });
     },
 
     'POST /api/account/logout-all': async (req, res) => {
@@ -225,7 +231,7 @@ export function createAccountRoutes({ config, accounts, requireUser, requireAdmi
       const { user, token } = await requireUser(req);
       forbidDemo(user);
       const ended = await accounts.deleteUserSessions(user.id, token);
-      sendJson(res, 200, { ok: true, endedSessions: ended });
+      sendJson(res, 200, { ok: true, endedSessions: ended }, { 'Set-Cookie': await startSession(req, user.id) });
     },
 
     'DELETE /api/account': async (req, res) => {

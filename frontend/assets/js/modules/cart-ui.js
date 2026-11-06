@@ -170,7 +170,20 @@ function renderPanel() {
   foot.innerHTML = `
     <div class="cart-total"><span>Итого</span><b>${formatPrice(cartTotal(lines))}</b></div>
     <a class="btn primary btn--block" href="/checkout">Оформить заказ</a>
-    <p class="note">Оплата картой или переводом. Окончательную сумму сайт сверит с прейскурантом.</p>`;
+    <p class="note" data-pay-note>Окончательную сумму сайт сверит с прейскурантом.</p>`;
+  payNote(foot.querySelector('[data-pay-note]'));
+}
+
+/** Способы оплаты — один запрос на страницу: «Принимаем карты», если аквапарк принимает. */
+let methodsPromise = null;
+function payNote(el) {
+  methodsPromise ??= fetch('/api/checkout/options').then((r) => r.json()).then((d) => d.methods).catch(() => null);
+  methodsPromise.then((m) => {
+    if (!el.isConnected) return;
+    el.textContent = m && (m.card?.enabled || m.transfer?.enabled)
+      ? '💳 Можно оплатить банковской картой: Visa, Mastercard, Kaspi Gold.'
+      : 'Оплата на кассе по коду заказа. Окончательную сумму сайт сверит с прейскурантом.';
+  });
 }
 
 export function openCart(from = null) {

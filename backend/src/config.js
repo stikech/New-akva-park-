@@ -54,6 +54,12 @@ export function readConfig(env = process.env) {
     adminToken: str(env.ADMIN_TOKEN),
 
     /**
+     * Ключ шифрования сессий (sealed-token.js). Должен быть постоянным, иначе после
+     * перезапуска все выйдут из кабинета: SESSION_SECRET, а без него — из ADMIN_TOKEN.
+     */
+    sessionSecret: str(env.SESSION_SECRET) ?? str(env.ADMIN_TOKEN),
+
+    /**
      * Секрет подписи платёжных чеков (HMAC-SHA256). Без него нельзя принимать
      * платежи — маршруты заказов просто не заведутся. Если переменной нет,
      * генерируем случайный на процесс: годится для разработки и демо, но

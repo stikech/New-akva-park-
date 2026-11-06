@@ -34,4 +34,5 @@ export function initAccountLink(links, i18n) {
 
   check();
   window.addEventListener('pageshow', (event) => { if (event.persisted) check(); });
+  document.addEventListener('neptun:signed-in', check); // вход на странице оплаты
 }

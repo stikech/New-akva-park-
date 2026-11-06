@@ -36,7 +36,7 @@ if (backup.enabled) {
 }
 const store = createFileStore(config.dataDir);
 const notifier = createTelegramNotifier(config.telegram);
-const accounts = createAccountStore(config.dataDir);
+const accounts = createAccountStore(config.dataDir, { sessionKey: config.sessionSecret });
 const orders = createOrderStore(config.dataDir);
 const bookings = createBookingStore(config.dataDir);
 const journal = createAudit(config.dataDir);
