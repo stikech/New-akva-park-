@@ -33,3 +33,14 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      # Оплата: номер Kaspi можно вписать в backend/payment.config.js или здесь (важнее файла).
+      - key: KASPI_PHONE
+        sync: false
+      - key: KASPI_PAY_LINK
+        sync: false
+      # Постоянное хранение данных (бесплатный диск Render стирается): Upstash Redis,
+      # см. README → «Данные не пропадают». Без них аккаунты и заказы живут до перезапуска.
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

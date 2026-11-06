@@ -1,11 +1,12 @@
-/* ?v=7 — маршрутизация секций: подсветка активного пункта меню (aria-current).
+/* ?v=8 — отдельные страницы разделов (sections/pages.css), оплата Kaspi (kaspi.css).
    Точка входа стилей. Порядок важен: токены → база → каркас → компоненты → движение → секции. */
 
 @import url("tokens.css");
 @import url("base.css?v=4");
-@import url("layout.css?v=5");
+@import url("layout.css?v=6");
 @import url("components.css?v=3");
 @import url("motion.css");
+@import url("kaspi.css");
 
 @import url("sections/hero.css?v=2");
 @import url("sections/slides.css?v=2");
@@ -16,3 +17,4 @@
 @import url("sections/spa.css?v=3");
 @import url("sections/pool-cafe.css?v=2");
 @import url("sections/contacts.css?v=2");
+@import url("sections/pages.css");

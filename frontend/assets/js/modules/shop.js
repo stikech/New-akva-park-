@@ -1,18 +1,16 @@
 /**
  * Магазин кабинета: каталог тарифов, покупка и продление абонементов, чеки.
  *
- * Состояния: каталог → чекаут (карта) → чек/ошибка. Каталог приходит от
- * сервера вместе со списком заказов (GET /api/orders) — цены только из
- * каталога, с фронта их никто не подменит. Оплата уходит с Idempotency-Key
- * (api.js), повтор сети не списывает дважды.
- *
- * Данные карты не сохраняются — сервер возвращает только последние четыре
- * цифры. Форма предупреждает об этом честно, без мелкого шрифта.
+ * Состояния: каталог → чекаут (перевод Kaspi → «Я оплатил» → ожидание) → чек.
+ * Каталог и реквизиты Kaspi приходят от сервера вместе со списком заказов
+ * (GET /api/orders) — цены только из каталога, с фронта их никто не подменит.
+ * Заказ создаётся с Idempotency-Key (api.js): повтор сети не создаст второй.
+ * Абонемент выдаётся сразу после того, как администратор подтвердит перевод.
  */
 
-import { shopApi, accountApi } from '../services/api.js?v=2';
-import { formatCardNumber, normalizeCardNumber, validateCard } from '../utils/card.js';
+import { shopApi } from '../services/api.js?v=3';
 import { escapeHtml, formatPrice, plural } from '../utils/format.js';
+import { bindCopyButtons, kaspiDisabledHtml, kaspiPayHtml, kaspiWaitingHtml, pollUntilSettled } from './kaspi-pay.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -32,6 +30,8 @@ export function initShop({ root, getUser, refreshUser, goto }) {
   let orders = [];
   let activeOrder = null;
   let lastResult = null; // { extended } после оплаты
+  let payment = null; // реквизиты Kaspi с сервера
+  let stopPolling = () => {};
 
   const user = getUser;
   const currentPlanId = () => getUser()?.membership?.planId ?? null;
@@ -106,8 +106,8 @@ export function initShop({ root, getUser, refreshUser, goto }) {
           <h3 class="acc-h3">Как защищены платежи</h3>
           <ul class="shop-guarantee__list">
             <li>Цены фиксирует сервер — в заказе нельзя прислать свою сумму.</li>
-            <li>Оплата помечена ключом идемпотентности: при сбое сети списание не задвоится.</li>
-            <li>Номер карты, срок и CVC остаются между вами и банком — у нас их нет.</li>
+            <li>Оплата — переводом Kaspi напрямую на счёт аквапарка, с кодом заказа в комментарии.</li>
+            <li>Абонемент включается, как только администратор увидит перевод. Данные карты нам не нужны.</li>
           </ul>
         </div>
       </div>`;
@@ -128,8 +128,9 @@ export function initShop({ root, getUser, refreshUser, goto }) {
               <div class="orders__right">
                 <span class="orders__price">${formatPrice(o.price)}</span>
                 <span class="badge ${o.status === 'paid' ? '' : 'badge--light'}" data-code="${o.status === 'paid' ? 'active' : 'none'}">${escapeHtml(STATUS_LABEL[o.status] ?? o.status)}</span>
-                ${o.status === 'pending' ? `<button class="btn outline" type="button" data-pay-order="${escapeHtml(o.id)}">Оплатить</button>` : ''}
-                ${o.receipt ? `<small class="note">чек <b>${escapeHtml(o.receipt.receiptId)}</b> · подпись ${o.receipt.valid ? 'верна' : 'не подтверждена'}</small>` : ''}
+                ${o.status === 'pending' ? `<button class="btn outline" type="button" data-pay-order="${escapeHtml(o.id)}">${o.kaspi?.claimedAt ? 'Проверяем перевод' : 'Оплатить'}</button>` : ''}
+                ${o.receipt ? `<small class="note">чек <b>${escapeHtml(o.receipt.receiptId)}</b></small>` : ''}
+                ${o.kaspi?.rejectReason ? `<small class="note">${escapeHtml(o.kaspi.rejectReason)}</small>` : ''}
               </div>
             </li>`).join('')}
         </ul>
@@ -152,37 +153,15 @@ export function initShop({ root, getUser, refreshUser, goto }) {
           </p>
           <p class="shop-checkout__amount"><span>К оплате</span><b>${formatPrice(order.price)}</b></p>
           ${phoneMissing ? `<p class="note">Телефон в профиле не указан — администрация не сможет связаться с вами по вопросу заказа. <a href="/account/profile" data-goto="tab-profile" data-edit="1">Заполнить телефон</a>.</p>` : ''}
-          <form id="payForm" class="acc-form" novalidate>
-            <div class="field">
-              <label for="pay-number">Номер карты</label>
-              <input id="pay-number" name="number" type="text" inputmode="numeric" autocomplete="cc-number" spellcheck="false" placeholder="0000 0000 0000 0000" maxlength="19" required>
-              <span class="field__error" data-error="number"></span>
-            </div>
-            <div class="field">
-              <label for="pay-exp">Срок действия</label>
-              <input id="pay-exp" name="exp" type="text" inputmode="numeric" autocomplete="cc-exp" spellcheck="false" placeholder="ММ/ГГ" maxlength="5" required>
-              <span class="field__error" data-error="exp"></span>
-            </div>
-            <div class="field">
-              <label for="pay-cvc">CVC</label>
-              <input id="pay-cvc" name="cvc" type="password" inputmode="numeric" autocomplete="cc-csc" placeholder="•••" maxlength="3" required>
-              <span class="field__error" data-error="cvc"></span>
-            </div>
-            <div class="field">
-              <label for="pay-holder">Имя на карте (латиницей)</label>
-              <input id="pay-holder" name="holder" type="text" autocomplete="cc-name" spellcheck="false" maxlength="60" required>
-              <span class="field__error" data-error="holder"></span>
-            </div>
-            <p class="acc-status" data-status role="alert"></p>
-            <div class="acc-actions">
-              <button class="btn primary" type="submit">Оплатить ${formatPrice(order.price)}</button>
-              <button class="btn outline" type="button" data-shop-back>Отмена</button>
-            </div>
-          </form>
-          <p class="shop-checkout__note">
-            Демо-платёж: деньги не списываются. Любая настоящая карта проходит; № …0002 отклоняется банком, № …9995 — «недостаточно средств».
-            На платёжном контуре шлюз (Kaspi Pay / bePaid) встраивается одним колбэком: маршруты уже готовы. Данные карты остаются только у банка.
-          </p>
+          ${!payment?.enabled
+            ? kaspiDisabledHtml()
+            : order.kaspi?.claimedAt
+              ? kaspiWaitingHtml({ code: order.payCode })
+              : kaspiPayHtml({ payment, amount: order.price, code: order.payCode })}
+          <div class="acc-actions">
+            <button class="btn outline" type="button" data-shop-back>← К каталогу</button>
+            ${order.kaspi?.claimedAt ? '' : '<button class="btn ghost" type="button" data-shop-cancel>Отменить заказ</button>'}
+          </div>
         </div>
       </div>`;
   }
@@ -202,8 +181,8 @@ export function initShop({ root, getUser, refreshUser, goto }) {
           <dl class="receipt-list">
             <div><dt>Чек</dt><dd>${escapeHtml(receipt.receiptId)}</dd></div>
             <div><dt>Оплачено</dt><dd>${new Date(receipt.paidAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</dd></div>
-            <div><dt>Карта</dt><dd>•••• ${escapeHtml(receipt.last4)} · ${escapeHtml(receipt.brand ?? 'карта')}</dd></div>
-            <div><dt>Подпись</dt><dd>${receipt.valid ? 'верна' : 'не подтверждена'}</dd></div>
+            <div><dt>Способ</dt><dd>${receipt.last4 ? `•••• ${escapeHtml(receipt.last4)} · ` : ''}${escapeHtml(receipt.brand ?? 'Kaspi')}</dd></div>
+            <div><dt>Код заказа</dt><dd>${escapeHtml(order.payCode ?? '—')}</dd></div>
           </dl>
           ${m ? `<p class="note">${escapeHtml(m.title.split(' · ').slice(1).join(' · ') || m.title)} · осталось ${m.visitsTotal == null ? 'безлимит' : `${m.status.visitsLeft} ${plural(m.status.visitsLeft, ['посещение', 'посещения', 'посещений'])}`}${m.endsAt ? `, действует до ${new Date(`${m.endsAt}T00:00:00Z`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}` : ''}</p>` : ''}
           <div class="acc-actions">
@@ -217,6 +196,7 @@ export function initShop({ root, getUser, refreshUser, goto }) {
   // ---------- рендер и события ----------
 
   function render() {
+    stopPolling();
     if (state === 'loading') {
       root.innerHTML = `
         <div class="shop-root__load" role="status">
@@ -247,68 +227,48 @@ export function initShop({ root, getUser, refreshUser, goto }) {
   }
 
   function bindCheckout() {
-    const form = $('#payForm', root);
-    if (!form) return;
-    $('#pay-number', form).addEventListener('input', (e) => {
-      e.target.value = formatCardNumber(e.target.value);
-    });
-    $('#pay-exp', form).addEventListener('input', (e) => {
-      const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 4);
-      e.target.value = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
-    });
-    $('#pay-cvc', form).addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
+    $$('[data-shop-back]', root).forEach((b) => b.addEventListener('click', backToCatalog));
+    bindCopyButtons(root);
+
+    $('[data-shop-cancel]', root)?.addEventListener('click', async (event) => {
+      event.currentTarget.disabled = true;
+      try { await shopApi.cancelOrder(activeOrder.id); } catch { /* закрыт — перечитаем */ }
+      activeOrder = null;
+      await load();
     });
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const card = {
-        number: normalizeCardNumber(form.elements.number.value),
-        exp: form.elements.exp.value.trim(),
-        cvc: form.elements.cvc.value.trim(),
-        holder: form.elements.holder.value.trim(),
-      };
-      // Сначала локальная проверка — мгновенная подсказка, без запросов к серверу
-      const local = validateCard(card);
-      if (!local.ok) {
-        $$('.field__error', form).forEach((el) => { el.textContent = local.errors[el.dataset.error] ?? ''; });
-        form.querySelector('.field__error:not(:empty)')?.closest('.field')?.querySelector('input')?.focus();
-        return;
-      }
-      const button = $('button[type="submit"]', form);
-      const status = $('[data-status]', form);
+    $('[data-kaspi-claim]', root)?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      const status = $('[data-kaspi-status]', root);
       button.disabled = true;
-      status.textContent = 'Проводим платёж…';
+      status.textContent = 'Отправляем…';
       try {
-        const result = await shopApi.payOrder(activeOrder.id, card);
-        lastResult = result.membership ? { extended: result.membership.extended } : null;
-        activeOrder = { ...activeOrder, ...result.order };
-        await refreshUser();
-        const ordersData = await shopApi.orders();
-        orders = ordersData.items;
-        state = 'receipt';
+        const { order } = await shopApi.claimKaspi(activeOrder.id);
+        activeOrder = { ...activeOrder, ...order };
+        if (order.status === 'paid') { await settle(order); return; }
         render();
       } catch (error) {
-        status.textContent = '';
-        if (error.status === 422 && error.body?.errors) {
-          $$('.field__error', form).forEach((el) => { el.textContent = error.body.errors[el.dataset.error] ?? ''; });
-        } else if (error.status === 402) {
-          status.textContent = error.message;
-          button.disabled = false; // другая карта может пройти
-          const numberInput = $('#pay-number', form);
-          numberInput.value = '';
-          numberInput.focus();
-          form.elements.cvc.value = '';
-        } else if (error.status === 401 && user()) {
-          status.textContent = 'Сеанс завершён — войдите снова.';
-        } else {
-          status.textContent = error.message;
-          button.disabled = false; // повторная попытка возможна
-        }
+        status.textContent = error.status === 401 ? 'Сеанс завершён — войдите снова.' : error.message;
+        button.disabled = false;
       }
     });
 
-    $$('[data-shop-back]', form).forEach((b) => b.addEventListener('click', backToCatalog));
+    // Ждём, пока администратор подтвердит перевод — чек откроется сам.
+    if (activeOrder?.status === 'pending' && activeOrder.kaspi?.claimedAt) {
+      stopPolling = pollUntilSettled(async () => (await shopApi.order(activeOrder.id)).order, settle);
+    }
+  }
+
+  /** Заказ закрыт администратором: оплачен — чек, отклонён — история заказов. */
+  async function settle(order) {
+    activeOrder = { ...activeOrder, ...order };
+    if (order.status !== 'paid') { await load(); showNote(order.kaspi?.rejectReason ?? 'Заказ закрыт'); return; }
+    const previous = getUser()?.membership?.planId ?? null;
+    await refreshUser();
+    lastResult = { extended: previous === order.planId && currentActive() };
+    orders = (await shopApi.orders()).items;
+    state = 'receipt';
+    render();
   }
 
   function backToCatalog() {
@@ -321,7 +281,7 @@ export function initShop({ root, getUser, refreshUser, goto }) {
     activeOrder = order;
     state = 'checkout';
     render();
-    requestAnimationFrame(() => $('#pay-number', root)?.focus());
+    requestAnimationFrame(() => $('[data-kaspi-claim]', root)?.focus({ preventScroll: true }));
   }
 
   /** Вывод ошибки поверх каталога (карточки остаются на месте). */
@@ -375,8 +335,9 @@ export function initShop({ root, getUser, refreshUser, goto }) {
     state = 'loading';
     render();
     inflight = shopApi.orders()
-      .then(({ items, catalog }) => {
+      .then(({ items, catalog, payment: info }) => {
         if (catalog) plans = catalog;
+        payment = info ?? null;
         orders = items;
         if (!plans.length) throw new Error('catalog empty');
         loaded = true;
@@ -405,6 +366,7 @@ export function initShop({ root, getUser, refreshUser, goto }) {
 
   /** Сброс при выходе из аккаунта: следующему пользователю — новые данные. */
   function reset() {
+    stopPolling();
     state = 'catalog';
     plans = [];
     orders = [];

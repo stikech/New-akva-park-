@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { PAYMENT } from '../payment.config.js';
 
 const BACKEND_DIR = fileURLToPath(new URL('..', import.meta.url));
 
@@ -44,6 +45,33 @@ export function readConfig(env = process.env) {
      * (данные не пропадут — применённые абонементы уже в accounts.json).
      */
     paymentSecret: str(env.PAYMENT_SECRET) ?? randomBytes(32).toString('hex'),
+
+    /**
+     * Способ оплаты: 'kaspi' (по умолчанию) — перевод на Kaspi с подтверждением в админке;
+     * 'demo' — эмулятор карточного шлюза для тестов (любая карта по Луну «проходит»,
+     * поэтому на боевом сайте его включать нельзя).
+     */
+    paymentMode: str(env.PAYMENT_MODE)?.toLowerCase() === 'demo' ? 'demo' : 'kaspi',
+
+    /** Реквизиты Kaspi: backend/payment.config.js, переменные окружения важнее. */
+    kaspi: {
+      phone: str(env.KASPI_PHONE) ?? str(PAYMENT.kaspiPhone),
+      receiver: str(env.KASPI_RECEIVER) ?? str(PAYMENT.receiverName) ?? 'Аквапарк «Нептун»',
+      payLink: str(env.KASPI_PAY_LINK) ?? str(PAYMENT.kaspiPayLink),
+      qr: str(env.KASPI_QR) ?? str(PAYMENT.kaspiQr),
+    },
+
+    /**
+     * Постоянное хранение данных на бесплатном хостинге: копия DATA_DIR в Upstash Redis
+     * (REST API, бесплатно). Без переменных — только локальные файлы.
+     */
+    backup: {
+      url: str(env.UPSTASH_REDIS_REST_URL),
+      token: str(env.UPSTASH_REDIS_REST_TOKEN),
+    },
+
+    /** Публичный адрес сайта — для ссылок в уведомлениях Telegram. */
+    publicUrl: str(env.PUBLIC_URL) ?? str(env.RENDER_EXTERNAL_URL),
 
     /** Заготовленные демо-аккаунты кабинета (demo-accounts.js), пересоздаются при запуске. */
     demoAccounts: ['1', 'true', 'yes'].includes(String(env.DEMO_ACCOUNTS ?? '').trim().toLowerCase()),

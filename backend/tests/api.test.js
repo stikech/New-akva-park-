@@ -123,12 +123,14 @@ describe('API', () => {
     }
   });
 
-  test('секции главной доступны по собственным адресам: /prices, /pool…', async () => {
-    for (const p of ['/slides', '/prices/', '/rules', '/fitness/', '/classes', '/spa/', '/pool', '/contacts/']) {
+  test('у каждого раздела своя страница: /prices → prices.html, /pool → pool.html…', async () => {
+    for (const p of ['/slides', '/prices/', '/rules', '/fitness/', '/classes', '/spa/', '/pool', '/contacts/', '/ticket']) {
       const res = await fetch(`${srv.base}${p}`);
       assert.equal(res.status, 200, p);
       assert.match(res.headers.get('content-type') ?? '', /text\/html/u, p);
-      assert.match(await res.text(), /Нептун/u, p);
+      const html = await res.text();
+      assert.match(html, /Нептун/u, p);
+      assert.ok(html.includes(`data-page="${p.replaceAll('/', '')}"`), `${p}: отдана своя страница`);
     }
     // Не секция и не файл — обычный 404, а не страница сайта.
     assert.equal((await fetch(`${srv.base}/nosuchsection`)).status, 404);

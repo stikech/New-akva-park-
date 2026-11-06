@@ -23,9 +23,12 @@
  *   POST   /api/orders            — создать заказ { planId }, Idempotency-Key обязателен
  *   GET    /api/orders            — мои заказы
  *   GET    /api/orders/:id        — статус заказа (владелец)
- *   POST   /api/orders/:id/pay    — оплатить { number, exp, cvc, holder }
+ *   POST   /api/orders/:id/pay    — оплатить картой { number, exp, cvc, holder } (только PAYMENT_MODE=demo)
+ *   POST   /api/orders/:id/kaspi-claim — клиент перевёл деньги на Kaspi («Я оплатил»)
  *   POST   /api/orders/:id/cancel — отменить (только pending)
  *   GET    /api/admin/orders      — все заказы (администратор)
+ *   POST   /api/admin/orders/:id/confirm — перевод найден: заказ оплачен, абонемент выдан
+ *   POST   /api/admin/orders/:id/reject  — перевод не найден: заказ отменён { reason? }
  */
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -36,6 +39,7 @@ import { SITE_DATA } from '../../frontend/assets/js/config/site-data.js';
 import { cityDateString } from '../../frontend/assets/js/utils/account.js';
 import { validateCard } from '../../frontend/assets/js/utils/card.js';
 import { applyPlan } from './membership-service.js';
+import { claimMessage, kaspiInfo, newPayCode, publicKaspi } from './kaspi.js';
 
 const IDEMPOTENCY_RE = /^[A-Za-z0-9._-]{16,80}$/;
 const ID_RE = /^[0-9a-fA-F-]{8,64}$/;
@@ -47,7 +51,7 @@ const DECLINE_ERRORS = {
 };
 
 export function createPaymentRoutes({
-  config, accounts, orders, journal, requireUser, requireAdmin, log = console, clock = () => new Date(),
+  config, accounts, orders, journal, requireUser, requireAdmin, notifier = null, log = console, clock = () => new Date(),
 }) {
   if (!config.paymentSecret) {
     throw new Error('payments.js: не задан PAYMENT_SECRET — чеки без подписи недопустимы');
@@ -112,6 +116,8 @@ export function createPaymentRoutes({
       category: o.category,
       title: o.title,
       price: o.price,
+      payCode: o.payCode ?? null,
+      kaspi: publicKaspi(o),
       status: o.status,
       createdAt: o.createdAt,
       updatedAt: o.updatedAt,
@@ -161,7 +167,7 @@ export function createPaymentRoutes({
       const { user } = await requireUser(req);
       const items = (await orders.listByUser(user.id)).map(publicOrder);
       // catalog идёт вместе с заказами: вкладка «Магазин» берёт цены только отсюда
-      sendJson(res, 200, { items, total: items.length, catalog });
+      sendJson(res, 200, { items, total: items.length, catalog, payment: kaspiInfo(config) });
     },
 
     'POST /api/orders': async (req, res) => {
@@ -189,13 +195,13 @@ export function createPaymentRoutes({
       const nowISO = clock().toISOString();
       const { order, created } = await orders.create({
         userId: user.id, planId: plan.id, category: plan.category, title: plan.title, price: plan.price,
-        idempotencyKey: String(key), now: nowISO,
+        payCode: newPayCode(), idempotencyKey: String(key), now: nowISO,
       });
       if (created) {
         await journal.record('order_created', { orderId: order.id, userId: user.id, planId: order.planId, price: order.price });
         log.info?.(`[orders] создан ${order.id} (${order.planId})`);
       }
-      sendJson(res, created ? 201 : 200, { order: publicOrder(order), catalog });
+      sendJson(res, created ? 201 : 200, { order: publicOrder(order), catalog, payment: kaspiInfo(config) });
     },
 
     'GET /api/admin/orders': async (req, res) => {
@@ -225,11 +231,12 @@ export function createPaymentRoutes({
         try { await issueMembership(order); } catch (error) { log.error('[orders] ремонт не удался:', error.message); }
         order = await orders.byIdOrder(id);
       }
-      sendJson(res, 200, { order: publicOrder(order) });
+      sendJson(res, 200, { order: publicOrder(order), payment: kaspiInfo(config) });
     },
 
     'POST /api/orders/:id/pay': async (req, res, { params }) => {
       assertSameOrigin(req);
+      if (config.paymentMode !== 'demo') throw new HttpError(403, 'Оплата картой отключена — оплатите переводом Kaspi');
       const id = String(params.id ?? '');
       if (!ID_RE.test(id)) throw new HttpError(404, 'Заказ не найден');
       const { user } = await requireUser(req);
@@ -306,6 +313,90 @@ export function createPaymentRoutes({
         o.cancelledAt = clock().toISOString();
       });
       await journal.record('order_cancelled', { orderId: order.id, userId: user.id });
+      sendJson(res, 200, { order: publicOrder(updated) });
+    },
+
+    'POST /api/orders/:id/kaspi-claim': async (req, res, { params }) => {
+      assertSameOrigin(req);
+      const id = String(params.id ?? '');
+      if (!ID_RE.test(id)) throw new HttpError(404, 'Заказ не найден');
+      const { user } = await requireUser(req);
+      const payment = kaspiInfo(config);
+      if (!payment.enabled) throw new HttpError(409, 'Онлайн-оплата пока не подключена — оформите абонемент на ресепшене');
+      const order = await orders.byIdOrder(id);
+      if (!order || order.userId !== user.id) throw new HttpError(404, 'Заказ не найден');
+      if (order.status !== 'pending' && order.status !== 'paid') throw new HttpError(409, 'Заказ уже закрыт — создайте новый');
+
+      let firstClaim = false;
+      const updated = await orders.patch(id, (o) => {
+        if (o.status !== 'pending' || o.kaspi?.claimedAt) return;
+        o.kaspi = { ...o.kaspi, claimedAt: clock().toISOString() };
+        firstClaim = true;
+      });
+      if (firstClaim) {
+        await journal.record('order_kaspi_claimed', { orderId: id, userId: user.id, payCode: updated.payCode, price: updated.price });
+        notifier?.send?.(claimMessage({
+          kind: `Абонемент «${updated.title}»`,
+          code: updated.payCode,
+          amount: updated.price,
+          who: [user.firstName, user.email, user.phone].filter(Boolean).join(', '),
+          publicUrl: config.publicUrl,
+        }));
+      }
+      sendJson(res, 200, { order: publicOrder(updated), payment });
+    },
+
+    'POST /api/admin/orders/:id/confirm': async (req, res, { params }) => {
+      requireAdmin(req);
+      const id = String(params.id ?? '');
+      const order = ID_RE.test(id) ? await orders.byIdOrder(id) : null;
+      if (!order) throw new HttpError(404, 'Заказ не найден');
+      if (order.status !== 'pending' && order.status !== 'paid') throw new HttpError(409, 'Заказ закрыт — подтвердить нельзя');
+
+      let outcome = order.status === 'paid' ? 'duplicate' : null;
+      if (!outcome) {
+        const receipt = buildReceipt(order, { last4: null, brand: 'Kaspi' });
+        await orders.patch(id, (o) => {
+          if (o.status !== 'pending') { outcome = o.status === 'paid' ? 'duplicate' : 'conflict'; return; }
+          o.status = 'paid';
+          o.paidAt = receipt.paidAt;
+          o.receipt = receipt;
+          o.kaspi = { ...o.kaspi, confirmedAt: clock().toISOString() };
+          outcome = 'paid';
+        });
+      }
+      if (outcome === 'conflict') throw new HttpError(409, 'Заказ закрыт — подтвердить нельзя');
+      if (outcome === 'paid') {
+        await journal.record('order_paid', { orderId: id, userId: order.userId, planId: order.planId, price: order.price, method: 'kaspi', by: 'admin' });
+      }
+      // Выдаём абонемент и при повторном подтверждении, если в прошлый раз не удалось.
+      const fresh = await orders.byIdOrder(id);
+      let result = null;
+      if (!fresh.applied) result = await issueMembership(fresh);
+      sendJson(res, 200, {
+        order: publicOrder(await orders.byIdOrder(id)),
+        alreadyPaid: outcome === 'duplicate',
+        membership: result ? { extended: result.extended } : null,
+      });
+    },
+
+    'POST /api/admin/orders/:id/reject': async (req, res, { params }) => {
+      requireAdmin(req);
+      const id = String(params.id ?? '');
+      const body = await readJsonBody(req).catch(() => ({}));
+      const reason = String(body?.reason ?? '').trim().slice(0, 200) || 'Перевод не найден';
+      let outcome = null;
+      const updated = ID_RE.test(id) ? await orders.patch(id, (o) => {
+        if (o.status !== 'pending') { outcome = 'conflict'; return; }
+        const nowISO = clock().toISOString();
+        o.status = 'cancelled';
+        o.cancelledAt = nowISO;
+        o.kaspi = { ...o.kaspi, rejectedAt: nowISO, rejectReason: reason };
+        outcome = 'rejected';
+      }) : null;
+      if (!updated) throw new HttpError(404, 'Заказ не найден');
+      if (outcome === 'conflict') throw new HttpError(409, 'Отклонить можно только неоплаченный заказ');
+      await journal.record('order_rejected', { orderId: id, reason });
       sendJson(res, 200, { order: publicOrder(updated) });
     },
   };

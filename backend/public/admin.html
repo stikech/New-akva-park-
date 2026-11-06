@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/assets/css/tokens.css">
-  <link rel="stylesheet" href="/admin/admin.css">
-  <script type="module" src="/admin/admin.js?v=2"></script>
+  <link rel="stylesheet" href="/admin/admin.css?v=2">
+  <script type="module" src="/admin/admin.js?v=3"></script>
 </head>
 <body>
   <header class="top">
@@ -38,10 +38,34 @@
     </section>
 
     <nav class="switch" id="switch" hidden aria-label="Разделы админки">
-      <button type="button" data-view="list" aria-pressed="true">Отзывы</button>
+      <button type="button" data-view="payments" aria-pressed="true">Оплаты <span class="count" id="paymentsCount" hidden></span></button>
+      <button type="button" data-view="list" aria-pressed="false">Отзывы</button>
       <button type="button" data-view="users" aria-pressed="false">Клиенты и абонементы</button>
       <button type="button" data-view="visits" aria-pressed="false">Билеты</button>
     </nav>
+
+    <section id="paymentsView" hidden>
+      <div class="head">
+        <div>
+          <h1>Оплаты Kaspi</h1>
+          <p class="muted" id="paymentsSummary">Загружаем…</p>
+        </div>
+        <div class="tools">
+          <input id="paymentSearch" type="search" placeholder="Код NP-…, почта или имя" aria-label="Поиск оплаты">
+          <button class="ghost" id="paymentsRefresh" type="button">Обновить</button>
+        </div>
+      </div>
+      <div class="card status" id="serverStatus"></div>
+      <p class="muted howto">Клиент переводит сумму на Kaspi с кодом заказа в комментарии и жмёт «Я оплатил».
+        Найдите перевод с этим кодом и суммой в Kaspi Business / Kaspi.kz → «Подтвердить»: клиенту откроется чек,
+        абонемент выдастся сам. Перевода нет — «Отклонить».</p>
+      <p class="error" id="paymentsError" role="alert"></p>
+      <ol class="feed" id="paymentFeed" aria-live="polite"></ol>
+      <div class="empty card" id="paymentsEmpty" hidden>
+        <p><strong>Нет оплат, ожидающих проверки.</strong></p>
+        <p class="muted">Когда клиент нажмёт «Я оплатил», заказ появится здесь (и придёт в Telegram, если он настроен).</p>
+      </div>
+    </section>
 
     <section id="listView" hidden>
       <div class="head">
@@ -85,10 +109,10 @@
         <div>
           <h1>Билеты (визиты)</h1>
           <p class="muted" id="visitsSummary">Загружаем…</p>
-          <p class="muted">Онлайн-покупка билетов в аквапарк с главной: калькулятор → оплата картой. Гость называет номер заказа на входе.</p>
+          <p class="muted">Онлайн-билеты со страницы «Цены». Гость называет код NP-… на входе — найдите его поиском и нажмите «Отметить вход».</p>
         </div>
         <div class="tools">
-          <input id="visitSearch" type="search" placeholder="Почта или номер заказа" aria-label="Поиск визита">
+          <input id="visitSearch" type="search" placeholder="Код NP-…, почта или имя" aria-label="Поиск визита">
           <button class="ghost" id="visitsRefresh" type="button">Обновить</button>
         </div>
       </div>
@@ -168,6 +192,33 @@
         </div>
       </div>
       <p class="visit__receipt muted"></p>
+      <div class="user__actions visit__actions"></div>
+      <p class="error user__error" role="alert"></p>
+    </li>
+  </template>
+
+  <template id="paymentTpl">
+    <li class="card item payment">
+      <div class="item__meta">
+        <div class="payment__code">
+          <b class="payment__codevalue"></b>
+          <span class="payment__kind muted"></span>
+        </div>
+        <div>
+          <strong class="item__name"></strong>
+          <span class="visit__contact muted"></span>
+        </div>
+        <div class="visit__right">
+          <span class="visit__price"></span>
+          <span class="pill"></span>
+          <time class="item__date"></time>
+        </div>
+      </div>
+      <div class="user__actions">
+        <button class="btn" type="button" data-act="confirm">Подтвердить оплату</button>
+        <button class="ghost danger-text" type="button" data-act="reject">Отклонить</button>
+      </div>
+      <p class="error user__error" role="alert"></p>
     </li>
   </template>
 </body>

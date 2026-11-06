@@ -1,16 +1,18 @@
 /**
- * Точка входа. Только связывает данные, DOM и модули — логики здесь нет.
+ * Точка входа всех страниц сайта (главная и разделы /slides, /prices…).
+ * Только связывает данные, DOM и модули — логики здесь нет. На каждой странице
+ * своя часть разметки, поэтому модуль запускается, только если его блок есть.
  */
 
-import { getSiteData } from './services/api.js?v=2';
+import { getSiteData } from './services/api.js?v=3';
 import { cityNow, dayType, weekdayIndex } from './utils/time.js';
-import { createI18n } from './modules/i18n.js?v=2';
+import { createI18n } from './modules/i18n.js?v=3';
 import { initOpenStatus } from './modules/status.js';
 import { initWeather } from './modules/weather.js?v=2';
 import { initSlides } from './modules/slides.js';
 import { renderParkPrices, renderPoolPrices } from './modules/prices.js';
 import { initCalculator } from './modules/calculator.js';
-import { initVisitCheckout } from './modules/visit-checkout.js';
+import { initVisitCheckout } from './modules/visit-checkout.js?v=2';
 import { initTabs } from './modules/tabs.js';
 import { renderFitness } from './modules/fitness.js';
 import { renderSchedulePreview } from './modules/schedule-preview.js';
@@ -19,69 +21,71 @@ import { renderSpa } from './modules/spa.js';
 import { renderHours } from './modules/hours.js';
 import { initFeedback } from './modules/feedback.js?v=2';
 import { initMobileNav } from './modules/nav.js';
-import { initSectionRouting } from './modules/sections.js';
+import { markCurrentSection } from './modules/sections.js?v=2';
 import { initAccountLink } from './modules/account-link.js';
 import { initTheme } from './modules/theme.js';
 import { initReveal } from './modules/reveal.js';
+import { initTicketPage } from './modules/ticket-page.js';
 
 const $ = (selector) => document.querySelector(selector);
 
 const MAIN_PHONE = '+7 7152 33-61-41';
 
+/** Запускает init, если на странице есть его корневой элемент. */
+const on = (selector, init) => {
+  const el = $(selector);
+  if (el) init(el);
+};
+
 async function bootstrap() {
-  // Роутер секций — до запроса данных: по прямому адресу (/prices и т.п.)
-  // прокрутка к секции не должна ждать ответа сервера.
-  const router = initSectionRouting();
+  markCurrentSection();
+  initMobileNav($('.burger'), $('#drawer'));
+  initTheme([...document.querySelectorAll('[data-theme-toggle]')]);
+  on('#ticketRoot', initTicketPage);
 
   const data = await getSiteData();
   const today = cityNow(data.tzOffsetHours);
 
-  initMobileNav($('.burger'), $('#drawer'));
-  initTheme([...document.querySelectorAll('[data-theme-toggle]')]);
   initReveal([...document.querySelectorAll('main > section, main > .wrap')]);
 
   const i18n = createI18n();
-  initOpenStatus(
-    { dot: $('#statusDot'), text: $('#statusText') },
+  on('#statusDot', (dot) => initOpenStatus(
+    { dot, text: $('#statusText') },
     { schedule: data.hours.park, tzOffsetHours: data.tzOffsetHours },
     i18n,
-  );
+  ));
+  on('#outsideTemp', (el) => initWeather(el, data.coords));
 
-  initWeather($('#outsideTemp'), data.coords);
+  on('#slideList', (list) => initSlides({ list, heightInput: $('#h'), heightOutput: $('#hOut') }, data.slides));
 
-  initSlides({ list: $('#slideList'), heightInput: $('#h'), heightOutput: $('#hOut') }, data.slides);
+  on('#parkRows', (rows) => renderParkPrices({ rows, note: $('#parkNote') }, data.prices.park));
+  on('#poolRows', (rows) => renderPoolPrices({ rows, saving: $('#poolSaving') }, data.prices.pool));
+  on('#calculator', (el) => initCalculator(el, data.prices.park, dayType(today)));
+  on('#visitModal', (modal) => initVisitCheckout({ modal, park: data.prices.park }));
+  on('#priceTabs', (el) => initTabs(el, { sync: true }));
 
-  renderParkPrices({ rows: $('#parkRows'), note: $('#parkNote') }, data.prices.park);
-  renderPoolPrices({ rows: $('#poolRows'), saving: $('#poolSaving') }, data.prices.pool);
-  initCalculator($('#calculator'), data.prices.park, dayType(today));
-  initVisitCheckout({ modal: $('#visitModal'), park: data.prices.park });
-  initTabs($('#priceTabs'), { sync: true });
-
-  renderFitness(
-    { cards: $('#clubCards'), directions: $('#fitnessDirections'), hours: $('#fitnessHours'), socials: $('#fitnessSocials') },
+  on('#clubCards', (cards) => renderFitness(
+    { cards, directions: $('#fitnessDirections'), hours: $('#fitnessHours'), socials: $('#fitnessSocials') },
     data.fitness,
-  );
-  renderSchedulePreview($('#classesPreview'), data.schedule);
-  initTeam({ tablist: $('#teamTabs'), panels: $('#teamPanels') }, data.team);
+  ));
+  on('#classesPreview', (el) => renderSchedulePreview(el, data.schedule));
+  on('#teamTabs', (tablist) => initTeam({ tablist, panels: $('#teamPanels') }, data.team));
 
-  renderSpa({
-    massage: $('#massageList'),
+  on('#massageList', (massage) => renderSpa({
+    massage,
     massageHours: $('#massageHours'),
     booking: $('#spaBooking'),
     solarium: $('#solariumGroups'),
     solariumNote: $('#solariumNote'),
     press: $('#pressList'),
     pressCard: $('#pressPrice'),
-  }, data.spa);
+  }, data.spa));
 
-  renderHours($('#hoursRows'), data.hours.park, weekdayIndex(today));
-  initFeedback($('#feedbackForm'), { fallbackPhone: MAIN_PHONE });
+  on('#hoursRows', (el) => renderHours(el, data.hours.park, weekdayIndex(today)));
+  on('#feedbackForm', (form) => initFeedback(form, { fallbackPhone: MAIN_PHONE }));
   initAccountLink([...document.querySelectorAll('[data-account-link]')], i18n);
 
   i18n.init();
-
-  // Данные отрисованы, размеры секций устоялись — доскролл до адреса страницы.
-  router.reapply();
 }
 
 bootstrap().catch((error) => {

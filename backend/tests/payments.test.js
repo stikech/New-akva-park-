@@ -29,7 +29,7 @@ const json = (body, headers = {}, method = 'POST') => ({
 
 async function startServer(env = {}) {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'neptun-pay-'));
-  const config = readConfig({ ADMIN_TOKEN: 'test-token', DATA_DIR: dataDir, PAYMENT_SECRET: SECRET, ...env });
+  const config = readConfig({ ADMIN_TOKEN: 'test-token', DATA_DIR: dataDir, PAYMENT_SECRET: SECRET, PAYMENT_MODE: 'demo', ...env });
   const store = createFileStore(dataDir);
   const server = http.createServer(createApp({ config, store, log: silentLog }));
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

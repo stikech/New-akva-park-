@@ -4,6 +4,8 @@
  *
  *   GET  /api/health            — проверка живости (для хостинга)
  *   GET  /api/site              — данные страницы (docs/api-contract.md)
+ *   GET  /api/payment           — реквизиты оплаты Kaspi (backend/payment.config.js)
+ *   GET  /api/admin/status      — состояние сервера для админки
  *   POST /api/feedback          — отзыв с сайта
  *   GET  /api/admin/feedback    — список отзывов, Authorization: Bearer <ADMIN_TOKEN>
  *   /api/auth/*, /api/account*, /api/admin/users|membership|visit — личный кабинет (accounts.js)
@@ -12,7 +14,9 @@
  *   /api/visits/*               — онлайн-билеты аквапарка из калькулятора (visits.js)
  *   GET  /admin                 — страница администратора
  *   GET  /account[/раздел]      — личный кабинет: /account/overview, /account/shop…
- *   GET  /, /prices, /rules, …  — главная: чистые адреса секций (роутер на клиенте скроллит)
+ *   GET  /                      — главная: hero и плитки разделов
+ *   GET  /prices, /rules, …     — разделы сайта, у каждого своя страница (frontend/<раздел>.html)
+ *   GET  /ticket?id=…           — статус онлайн-билета и код для входа
  *   GET  /assets/*              — фронтенд
  */
 
@@ -32,10 +36,11 @@ import { createPaymentRoutes } from './payments.js';
 import { createBookingRoutes } from './bookings.js';
 import { createVisitRoutes } from './visits.js';
 import { createVisitStore } from './visit-store.js';
+import { kaspiInfo } from './kaspi.js';
 
-/** Секции главной с собственными адресами вроде /prices — на них ведут кнопки шапки и меню. */
-const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts'];
-const SITE_SECTIONS = new Set(SITE_SECTION_SLUGS.flatMap((s) => [`/${s}`, `/${s}/`]));
+/** Разделы сайта — отдельные страницы frontend/<раздел>.html, на них ведут кнопки шапки. */
+const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts', 'ticket'];
+const SITE_PAGES = new Map(SITE_SECTION_SLUGS.flatMap((s) => [[`/${s}`, `${s}.html`], [`/${s}/`, `${s}.html`]]));
 
 const sha256 = (s) => createHash('sha256').update(s).digest();
 
@@ -46,6 +51,7 @@ export function createApp({
   bookings = createBookingStore(config.dataDir),
   visits = createVisitStore(config.dataDir),
   journal = createAudit(config.dataDir),
+  backup = { enabled: false },
   clock,
 }) {
   const serveFile = createStaticServer({ trustProxyHops: config.trustProxyHops });
@@ -62,13 +68,13 @@ export function createApp({
   const requireUser = createUserGuard({ accounts });
   const extraClock = clock ? { clock } : {};
   const paymentRoutes = createPaymentRoutes({
-    config, accounts, orders, journal, requireUser, requireAdmin, log, ...extraClock,
+    config, accounts, orders, journal, requireUser, requireAdmin, notifier, log, ...extraClock,
   });
   const bookingRoutes = createBookingRoutes({
     config, accounts, bookings, journal, requireUser, requireAdmin, log, ...extraClock,
   });
   const visitRoutes = createVisitRoutes({
-    config, visits, journal, accounts, requireUser, requireAdmin, log, ...extraClock,
+    config, visits, journal, accounts, requireUser, requireAdmin, notifier, log, ...extraClock,
   });
 
   function isAdmin(req) {
@@ -94,6 +100,21 @@ export function createApp({
   const routes = {
     'GET /api/health': (req, res) => {
       sendJson(res, 200, { ok: true, uptimeSec: Math.round((Date.now() - startedAt) / 1000) });
+    },
+
+    'GET /api/payment': (req, res) => {
+      sendJson(res, 200, kaspiInfo(config));
+    },
+
+    'GET /api/admin/status': (req, res) => {
+      requireAdmin(req);
+      sendJson(res, 200, {
+        uptimeSec: Math.round((Date.now() - startedAt) / 1000),
+        payment: kaspiInfo(config),
+        telegram: notifier?.enabled ? 'on' : 'off',
+        backup: backup.enabled ? 'upstash' : 'off',
+        demoAccounts: config.demoAccounts,
+      });
     },
 
     'GET /api/site': (req, res) => {
@@ -216,10 +237,9 @@ export function createApp({
       if (await serveFile(req, res, config.publicDir, pathname.slice('/admin/'.length))) return;
     } else if (pathname === '/' || pathname === '/index.html') {
       if (await serveFile(req, res, config.frontendDir, 'index.html')) return;
-    } else if (SITE_SECTIONS.has(pathname)) {
-      // Навигация по сайту — настоящими адресами: /prices, /rules, /pool…
-      // Отдаём главную целиком, а скролл к секции делает клиентский роутер.
-      if (await serveFile(req, res, config.frontendDir, 'index.html')) return;
+    } else if (SITE_PAGES.has(pathname)) {
+      // Каждый раздел — своя страница по чистому адресу: /prices → prices.html.
+      if (await serveFile(req, res, config.frontendDir, SITE_PAGES.get(pathname))) return;
     } else if (pathname === '/account' || pathname === '/account/' || pathname.startsWith('/account/')) {
       // Каждая кнопка дашборда — отдельный URL: /account/overview, /account/profile…
       // Неизвестные разделы разгребает JS на странице (redirect на /account/overview).

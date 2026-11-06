@@ -15,8 +15,12 @@
  *
  *   POST /api/visits          — создать визит { adults, children, day, duration, contact, consent }
  *   GET  /api/visits/:id      — статус визита (по UUID — публично, как /api/bookings/:key)
- *   POST /api/visits/:id/pay  — оплатить { number, exp, cvc, holder }
- *   GET  /api/admin/visits    — все визиты (администратор)
+ *   POST /api/visits/:id/pay  — оплатить картой { number, exp, cvc, holder } (только PAYMENT_MODE=demo)
+ *   POST /api/visits/:id/kaspi-claim      — клиент перевёл деньги на Kaspi («Я оплатил»)
+ *   GET  /api/admin/visits                — все визиты (администратор)
+ *   POST /api/admin/visits/:id/confirm    — перевод найден: визит оплачен, чек
+ *   POST /api/admin/visits/:id/reject     — перевод не найден: визит отменён { reason? }
+ *   POST /api/admin/visits/:id/redeem     — гость прошёл на входе (билет погашен)
  */
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -27,6 +31,7 @@ import { SITE_DATA } from '../../frontend/assets/js/config/site-data.js';
 import { cityDateString } from '../../frontend/assets/js/utils/account.js';
 import { clampGuests, calcParkTotal } from '../../frontend/assets/js/utils/pricing.js';
 import { validateCard } from '../../frontend/assets/js/utils/card.js';
+import { claimMessage, kaspiInfo, newPayCode, publicKaspi } from './kaspi.js';
 
 const IDEMPOTENCY_RE = /^[A-Za-z0-9._-]{16,80}$/;
 const ID_RE = /^[0-9a-fA-F-]{8,64}$/;
@@ -41,7 +46,7 @@ const DECLINE_ERRORS = {
 };
 
 export function createVisitRoutes({
-  config, visits, journal, accounts, requireUser = null, requireAdmin, log = console, clock = () => new Date(),
+  config, visits, journal, accounts, requireUser = null, requireAdmin, notifier = null, log = console, clock = () => new Date(),
 }) {
   if (!config.paymentSecret) {
     throw new Error('visits.js: не задан PAYMENT_SECRET — чеки без подписи недопустимы');
@@ -55,7 +60,8 @@ export function createVisitRoutes({
   const createLimiterUser = createRateLimiter({ max: 20, windowMs: 60 * 60_000 });
   const payTotalLimiterIp = createRateLimiter({ max: 60, windowMs: 15 * 60_000 });
   const payFailLimiterIp = createRateLimiter({ max: 20, windowMs: 15 * 60_000 });
-  setInterval(() => [createLimiterIp, createLimiterUser, payTotalLimiterIp, payFailLimiterIp]
+  const claimLimiterIp = createRateLimiter({ max: 20, windowMs: 60 * 60_000 });
+  setInterval(() => [createLimiterIp, createLimiterUser, payTotalLimiterIp, payFailLimiterIp, claimLimiterIp]
     .forEach((l) => l.sweep()), 60_000).unref();
   setInterval(() => { visits.sweepExpired(); }, 10 * 60_000).unref();
 
@@ -145,6 +151,7 @@ export function createVisitRoutes({
     return {
       id: v.id,
       kind: 'visit',
+      payCode: v.payCode ?? null,
       adults: v.adults,
       children: v.children,
       day: v.day,
@@ -155,6 +162,8 @@ export function createVisitRoutes({
       updatedAt: v.updatedAt,
       paidAt: v.paidAt,
       attempts: Array.isArray(v.attempts) ? v.attempts.length : 0,
+      kaspi: publicKaspi(v),
+      usedAt: v.usedAt ?? null,
       receipt: v.receipt
         ? {
           receiptId: v.receipt.receiptId,
@@ -219,14 +228,14 @@ export function createVisitRoutes({
       }
 
       const nowISO = clock().toISOString();
-      const { visit, created } = await visits.create({ ...order, idempotencyKey: String(key), now: nowISO });
+      const { visit, created } = await visits.create({ ...order, payCode: newPayCode(), idempotencyKey: String(key), now: nowISO });
       if (created) {
         await journal.record('visit_created', {
           visitId: visit.id, userId: visit.userId ?? null, guests: visit.adults + visit.children, price: visit.price,
         });
         log.info?.(`[visits] создан ${visit.id} (${visit.adults}+${visit.children}, ${visit.day}/${visit.duration})`);
       }
-      sendJson(res, created ? 201 : 200, { visit: publicVisit(visit) });
+      sendJson(res, created ? 201 : 200, { visit: publicVisit(visit), payment: kaspiInfo(config) });
     },
 
     'GET /api/admin/visits': async (req, res) => {
@@ -244,13 +253,14 @@ export function createVisitRoutes({
       const visit = await visits.byId(id);
       // UUID достаёт только владелец заказа — статус публичный, контакты не раскрываем
       if (!visit) throw new HttpError(404, 'Визит не найден');
-      sendJson(res, 200, { visit: publicVisit(visit) });
+      sendJson(res, 200, { visit: publicVisit(visit), payment: kaspiInfo(config) });
     },
 
     'POST /api/visits/:id/pay': async (req, res, { params }) => {
       assertSameOrigin(req);
       const id = String(params.id ?? '');
       if (!ID_RE.test(id)) throw new HttpError(404, 'Визит не найден');
+      if (config.paymentMode !== 'demo') throw new HttpError(403, 'Оплата картой отключена — оплатите переводом Kaspi');
       const visit = await visits.byId(id);
       if (!visit) throw new HttpError(404, 'Визит не найден');
 
@@ -310,6 +320,104 @@ export function createVisitRoutes({
         visit: publicVisit(fresh),
         alreadyPaid: outcome === 'duplicate',
       });
+    },
+
+    'POST /api/visits/:id/kaspi-claim': async (req, res, { params }) => {
+      assertSameOrigin(req);
+      const id = String(params.id ?? '');
+      if (!ID_RE.test(id)) throw new HttpError(404, 'Визит не найден');
+      const payment = kaspiInfo(config);
+      if (!payment.enabled) throw new HttpError(409, 'Онлайн-оплата пока не подключена — оплатите на кассе');
+      const limit = claimLimiterIp.hit(clientIp(req, config.trustProxyHops));
+      if (!limit.ok) throw tooMany(limit);
+
+      let firstClaim = false;
+      const updated = await visits.patch(id, (v) => {
+        if (v.status !== 'pending' || v.kaspi?.claimedAt) return;
+        v.kaspi = { ...v.kaspi, claimedAt: clock().toISOString() };
+        firstClaim = true;
+      });
+      if (!updated) throw new HttpError(404, 'Визит не найден');
+      if (updated.status !== 'pending' && updated.status !== 'paid') {
+        throw new HttpError(409, 'Визит уже закрыт — оформите билеты заново');
+      }
+      if (firstClaim) {
+        await journal.record('visit_kaspi_claimed', { visitId: id, payCode: updated.payCode, price: updated.price });
+        notifier?.send?.(claimMessage({
+          kind: `Билеты (${updated.adults} взр. + ${updated.children} дет.)`,
+          code: updated.payCode,
+          amount: updated.price,
+          who: [updated.firstName, updated.email, updated.phone].filter(Boolean).join(', '),
+          publicUrl: config.publicUrl,
+        }));
+      }
+      sendJson(res, 200, { visit: publicVisit(updated), payment });
+    },
+
+    'POST /api/admin/visits/:id/confirm': async (req, res, { params }) => {
+      requireAdmin(req);
+      const id = String(params.id ?? '');
+      const visit = ID_RE.test(id) ? await visits.byId(id) : null;
+      if (!visit) throw new HttpError(404, 'Визит не найден');
+      if (visit.status === 'paid') return sendJson(res, 200, { visit: publicVisit(visit), alreadyPaid: true });
+      if (visit.status !== 'pending') throw new HttpError(409, 'Визит закрыт — подтвердить нельзя');
+
+      const receipt = buildReceipt(visit, { last4: null, brand: 'Kaspi' });
+      let outcome = null;
+      const updated = await visits.patch(id, (v) => {
+        if (v.status !== 'pending') { outcome = v.status === 'paid' ? 'duplicate' : 'conflict'; return; }
+        const nowISO = clock().toISOString();
+        v.status = 'paid';
+        v.paidAt = receipt.paidAt;
+        v.receipt = receipt;
+        v.kaspi = { ...v.kaspi, confirmedAt: nowISO };
+        outcome = 'paid';
+      });
+      if (outcome === 'conflict') throw new HttpError(409, 'Визит закрыт — подтвердить нельзя');
+      if (outcome === 'paid') {
+        await journal.record('visit_paid', { visitId: id, method: 'kaspi', price: visit.price, by: 'admin' });
+        log.info?.(`[visits] оплата Kaspi подтверждена ${id}`);
+      }
+      sendJson(res, 200, { visit: publicVisit(updated), alreadyPaid: outcome === 'duplicate' });
+    },
+
+    'POST /api/admin/visits/:id/reject': async (req, res, { params }) => {
+      requireAdmin(req);
+      const id = String(params.id ?? '');
+      const body = await readJsonBody(req).catch(() => ({}));
+      const reason = String(body?.reason ?? '').trim().slice(0, 200) || 'Перевод не найден';
+      let outcome = null;
+      const updated = ID_RE.test(id) ? await visits.patch(id, (v) => {
+        if (v.status !== 'pending') { outcome = 'conflict'; return; }
+        const nowISO = clock().toISOString();
+        v.status = 'cancelled';
+        v.cancelledAt = nowISO;
+        v.kaspi = { ...v.kaspi, rejectedAt: nowISO, rejectReason: reason };
+        outcome = 'rejected';
+      }) : null;
+      if (!updated) throw new HttpError(404, 'Визит не найден');
+      if (outcome === 'conflict') throw new HttpError(409, 'Отклонить можно только неоплаченный визит');
+      await journal.record('visit_rejected', { visitId: id, reason });
+      sendJson(res, 200, { visit: publicVisit(updated) });
+    },
+
+    'POST /api/admin/visits/:id/redeem': async (req, res, { params }) => {
+      requireAdmin(req);
+      const id = String(params.id ?? '');
+      let outcome = null;
+      const updated = ID_RE.test(id) ? await visits.patch(id, (v) => {
+        if (v.status !== 'paid') { outcome = 'unpaid'; return; }
+        if (v.usedAt) { outcome = 'used'; return; }
+        v.usedAt = clock().toISOString();
+        outcome = 'ok';
+      }) : null;
+      if (!updated) throw new HttpError(404, 'Визит не найден');
+      if (outcome === 'unpaid') throw new HttpError(409, 'Билет не оплачен — пропускать нельзя');
+      if (outcome === 'used') {
+        throw new HttpError(409, `Билет уже использован ${new Date(updated.usedAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })}`);
+      }
+      await journal.record('visit_redeemed', { visitId: id });
+      sendJson(res, 200, { visit: publicVisit(updated) });
     },
   };
 

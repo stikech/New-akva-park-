@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Правила · Аквапарк «Нептун»</title>
+  <meta name="description" content="Правила тарификации аквапарка «Нептун»: время по браслету, бесплатные минуты, доплата на выходе.">
+  <meta name="theme-color" content="#FFFFFF">
+  <script src="/assets/js/theme-boot.js?v=1"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/assets/css/main.css?v=8">
+
+  <script type="module" src="/assets/js/main.js?v=7"></script>
+</head>
+<body>
+
+<a class="skip" href="#top">Перейти к содержимому</a>
+
+<header>
+  <div class="wrap bar">
+    <a class="logo" href="/" aria-label="Нептун, на главную">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#1AA3C8"/>
+        <path d="M5 19c3-2 5-2 8 0s5 2 8 0 5-2 6-1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16 6v9M12 8v5M20 8v5" stroke="#FFC83A" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      Нептун
+    </a>
+
+    <nav class="main" aria-label="Основное меню">
+      <a href="/slides" data-i18n="nSlides">Горки</a>
+      <a href="/prices" data-i18n="nPrices">Цены</a>
+      <a href="/rules" aria-current="page" data-i18n="nRules">Правила</a>
+      <a href="/fitness" data-i18n="nFitness">Фитнес</a>
+      <a href="/classes" data-i18n="nClasses">Занятия</a>
+      <a href="/spa" data-i18n="nSpa">SPA</a>
+      <a href="/pool" data-i18n="nPool">Бассейн и кафе</a>
+      <a href="/contacts" data-i18n="nContacts">Контакты</a>
+    </nav>
+
+    <a class="account-link" href="/account" data-account-link>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+      <span data-account-label>Войти</span>
+    </a>
+
+    <div class="lang" role="group" aria-label="Язык">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="kz" aria-pressed="false">KZ</button>
+    </div>
+
+    <button class="theme-btn" type="button" data-theme-toggle aria-pressed="false" aria-label="Сменить тему" data-i18n-aria="themeToggle">
+      <svg class="theme-btn__icon theme-btn__icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/></svg>
+      <svg class="theme-btn__icon theme-btn__icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+    </button>
+
+    <button class="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Меню">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+    </button>
+  </div>
+
+  <nav class="drawer" id="drawer" aria-label="Мобильное меню">
+    <a href="/slides" data-i18n="nSlides">Горки</a>
+    <a href="/prices" data-i18n="nPrices">Цены</a>
+    <a href="/rules" aria-current="page" data-i18n="nRules">Правила</a>
+    <a href="/fitness" data-i18n="nFitness">Фитнес</a>
+    <a href="/classes" data-i18n="nClasses">Занятия</a>
+    <a href="/spa" data-i18n="nSpa">SPA</a>
+    <a href="/pool" data-i18n="nPool">Бассейн и кафе</a>
+    <a href="/contacts" data-i18n="nContacts">Контакты</a>
+    <a href="/account" data-account-link><span data-account-label="long">Личный кабинет</span></a>
+
+    <!-- Второй переключатель для очень узких экранов: в шапке места нет.
+         i18n синхронизирует оба набора кнопок data-lang. -->
+    <div class="lang lang--menu" role="group" aria-label="Язык">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="kz" aria-pressed="false">KZ</button>
+    </div>
+  </nav>
+</header>
+
+<main id="top" tabindex="-1" class="page" data-page="rules">
+
+  <div class="page-head">
+    <div class="wrap">
+      <nav class="crumbs" aria-label="Вы здесь">
+        <a href="/">Главная</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page" data-i18n="nRules">Правила</span>
+      </nav>
+      <h1 class="page-title">Правила</h1>
+      <p class="page-lead">Как считается время по браслету, сколько минут на раздевалку и когда нужна доплата.</p>
+    </div>
+  </div>
+
+  <!-- ===== Правила тарификации ===== -->
+  <section id="rules" aria-labelledby="rules-title">
+    <div class="wrap">
+      <h2 id="rules-title" data-i18n="rulesTitle">Как считается время</h2>
+      <div class="timeline">
+        <div class="step"><h3>Браслет на входе</h3><p>Оплаченное время начинается с момента получения электронного браслета.</p></div>
+        <div class="step"><h3>15 минут на раздевалку</h3><p>Время на переодевание заложено в правилах.</p></div>
+        <div class="step"><h3>10 минут в подарок</h3><p>Первые 10 минут сверх оплаченного времени бесплатны.</p></div>
+        <div class="step"><h3>Доплата на выходе</h3><p>Дальше — за каждые полные и неполные 5 минут по тарифу. Неиспользованное время не возвращается.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="wrap pager" aria-label="Соседние разделы">
+    <a class="pager__link" href="/prices" rel="prev"><small>Назад</small><span data-i18n="nPrices">Цены</span></a>
+    <a class="pager__link pager__link--next" href="/fitness" rel="next"><small>Дальше</small><span data-i18n="nFitness">Фитнес</span></a>
+  </nav>
+</main>
+
+
+
+<footer>
+  <nav class="wrap footer__nav" aria-label="Разделы сайта">
+      <a href="/slides" data-i18n="nSlides">Горки</a>
+      <a href="/prices" data-i18n="nPrices">Цены</a>
+      <a href="/rules" data-i18n="nRules">Правила</a>
+      <a href="/fitness" data-i18n="nFitness">Фитнес</a>
+      <a href="/classes" data-i18n="nClasses">Занятия</a>
+      <a href="/spa" data-i18n="nSpa">SPA</a>
+      <a href="/pool" data-i18n="nPool">Бассейн и кафе</a>
+      <a href="/contacts" data-i18n="nContacts">Контакты</a>
+      <a href="/ticket">Мои билеты</a>
+      <a href="/account">Личный кабинет</a>
+  </nav>
+  <div class="wrap footer__top">
+    <span class="footer__brand">Аквапарк «Нептун», Петропавловск</span>
+    <a class="footer__tel" href="tel:+77152336141">+7 7152 33-61-41</a>
+  </div>
+  <div class="wrap footer__bottom">
+    <span>Цены — по прейскуранту akvapark.kz</span>
+    <span>ул. Юрия Медведева, 41</span>
+  </div>
+</footer>
+
+</body>
+</html>

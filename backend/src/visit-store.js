@@ -63,7 +63,7 @@ export function createVisitStore(dataDir, { now = () => Date.now() } = {}) {
     file,
 
     /** Создаёт запись визита. Повтор с тем же ключом идемпотентности вернёт существующий. */
-    create({ email, firstName, userId, phone, adults, children, day, duration, price, idempotencyKey, now: isoNow }) {
+    create({ email, firstName, userId, phone, adults, children, day, duration, price, payCode = null, idempotencyKey, now: isoNow }) {
       return mutate((s) => {
         const existing = s.visits.find((v) => v.idempotencyKey === idempotencyKey);
         if (existing) return { visit: existing, created: false };
@@ -78,6 +78,7 @@ export function createVisitStore(dataDir, { now = () => Date.now() } = {}) {
           day,
           duration,
           price,
+          payCode,
           status: VISIT_STATUS.pending,
           createdAt: isoNow,
           updatedAt: isoNow,
@@ -86,6 +87,8 @@ export function createVisitStore(dataDir, { now = () => Date.now() } = {}) {
           paidAt: null,
           cancelledAt: null,
           receipt: null,
+          kaspi: null,
+          usedAt: null,
         };
         s.visits.push(visit);
         return { visit, created: true };
@@ -118,7 +121,8 @@ export function createVisitStore(dataDir, { now = () => Date.now() } = {}) {
       return mutate((s) => {
         let n = 0;
         for (const v of s.visits) {
-          if (v.status === 'pending' && Date.parse(v.createdAt) + PENDING_TTL_MS < t) {
+          // клиент сообщил об оплате Kaspi — ждёт сверки администратором, не истекает
+          if (v.status === 'pending' && !v.kaspi?.claimedAt && Date.parse(v.createdAt) + PENDING_TTL_MS < t) {
             v.status = 'expired';
             v.updatedAt = new Date(t).toISOString();
             n += 1;

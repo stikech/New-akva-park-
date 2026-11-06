@@ -61,7 +61,7 @@ export function createOrderStore(dataDir, { now = () => Date.now() } = {}) {
     file,
 
     /** Создаёт pending-заказ. Если ключ уже использован этим пользователем — вернёт существующий. */
-    create({ userId, planId, category, title, price, idempotencyKey, now: isoNow }) {
+    create({ userId, planId, category, title, price, payCode = null, idempotencyKey, now: isoNow }) {
       return mutate((s) => {
         const existing = byKey(s, userId, idempotencyKey);
         if (existing) return { order: existing, created: false };
@@ -72,6 +72,7 @@ export function createOrderStore(dataDir, { now = () => Date.now() } = {}) {
           category,
           title,
           price,
+          payCode,
           status: ORDER_STATUS.pending,
           createdAt: isoNow,
           updatedAt: isoNow,
@@ -80,6 +81,7 @@ export function createOrderStore(dataDir, { now = () => Date.now() } = {}) {
           paidAt: null,
           cancelledAt: null,
           receipt: null,
+          kaspi: null,
           applied: false,
         };
         s.orders.push(order);
@@ -125,7 +127,8 @@ export function createOrderStore(dataDir, { now = () => Date.now() } = {}) {
       return mutate((s) => {
         let n = 0;
         for (const o of s.orders) {
-          if (o.status === 'pending' && Date.parse(o.createdAt) + PENDING_TTL_MS < t) {
+          // клиент сообщил об оплате Kaspi — ждёт сверки администратором, не истекает
+          if (o.status === 'pending' && !o.kaspi?.claimedAt && Date.parse(o.createdAt) + PENDING_TTL_MS < t) {
             o.status = 'expired';
             o.updatedAt = new Date(t).toISOString();
             n += 1;

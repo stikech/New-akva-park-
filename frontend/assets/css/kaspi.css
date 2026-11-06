@@ -1,0 +1,67 @@
+/* Оплата переводом Kaspi (modules/kaspi-pay.js): модал билетов, магазин кабинета, /ticket. */
+
+.kaspi {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+}
+.kaspi__head { display: flex; align-items: center; gap: 12px; }
+.kaspi__head b { display: block; font-size: 16px; }
+.kaspi__head span { color: var(--muted); font-size: 13px; }
+.kaspi__logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #F14635; /* фирменный красный Kaspi */
+  color: #fff;
+  font: 900 20px/1 "Unbounded", sans-serif;
+}
+
+.kaspi__steps { display: grid; gap: 10px; margin: 0; padding-left: 22px; }
+.kaspi__steps li { padding-left: 2px; }
+.kaspi__steps li > span { margin-right: 6px; }
+.kaspi__steps small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.kaspi__value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kaspi__code { letter-spacing: .06em; color: var(--water-ink); }
+
+.kaspi__copy {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--mist);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.kaspi__copy:hover { border-color: var(--water); }
+
+.kaspi__alt { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.kaspi__qr { width: 160px; height: 160px; border-radius: var(--r-sm); background: #fff; padding: 6px; border: 1px solid var(--line); }
+.kaspi .btn.outline { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.kaspi .btn:disabled { opacity: .55; cursor: not-allowed; }
+.kaspi .acc-status:empty { display: none; }
+
+.kaspi--wait { grid-template-columns: auto 1fr; align-items: start; }
+.kaspi--wait p { margin-top: 4px; color: var(--muted); }
+.kaspi--off { background: var(--lagoon); border-color: transparent; }
+.kaspi--off p { color: var(--muted); }
+.kaspi--off .btn { justify-self: start; }
+
+.kaspi .spinner, .kaspi--wait .spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--line);
+  border-top-color: var(--water-ink);
+  border-radius: 50%;
+  animation: kaspi-spin .8s linear infinite;
+}
+@keyframes kaspi-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .kaspi .spinner { animation: none; } }

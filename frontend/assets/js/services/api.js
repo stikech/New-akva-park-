@@ -107,6 +107,7 @@ export const shopApi = {
   order: (id) => accountRequest('GET', `/orders/${id}`),
   createOrder: (planId) => accountRequest('POST', '/orders', { planId }, { idempotencyKey: crypto.randomUUID() }),
   payOrder: (id, card) => accountRequest('POST', `/orders/${id}/pay`, card),
+  claimKaspi: (id) => accountRequest('POST', `/orders/${id}/kaspi-claim`, {}),
   cancelOrder: (id) => accountRequest('POST', `/orders/${id}/cancel`, {}),
 };
 
@@ -125,6 +126,12 @@ export const visitApi = {
   create: (payload) => accountRequest('POST', '/visits', payload, { idempotencyKey: crypto.randomUUID() }),
   visit: (id) => accountRequest('GET', `/visits/${id}`),
   pay: (id, card) => accountRequest('POST', `/visits/${id}/pay`, card),
+  claimKaspi: (id) => accountRequest('POST', `/visits/${id}/kaspi-claim`, {}),
+};
+
+/** Реквизиты оплаты Kaspi (backend/payment.config.js): { enabled, phone, receiver, payLink, qr }. */
+export const paymentApi = {
+  info: () => accountRequest('GET', '/payment', undefined, { timeoutMs: 5000 }),
 };
 
 /** fetch с таймаутом и проверкой статуса. */
