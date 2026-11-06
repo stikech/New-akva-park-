@@ -1,0 +1,35 @@
+name: deploy to Render
+
+# После каждого обновления main (в т.ч. влитого Pull Request) и зелёных тестов
+# просит Render выкатить новую версию — не нужно нажимать Manual Deploy.
+#
+# Разовая настройка (2 минуты):
+#   1. Render → сервис neptun-aquapark → Settings → Deploy Hook → скопировать URL.
+#   2. GitHub → stikech/New-akva-park- → Settings → Secrets and variables → Actions →
+#      New repository secret: имя RENDER_DEPLOY_HOOK_URL, значение — этот URL.
+# Пока секрета нет, шаг деплоя пропускается (тесты всё равно идут в ci.yml).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - name: Trigger Render deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Секрет RENDER_DEPLOY_HOOK_URL не задан — нажмите Manual Deploy в Render (см. комментарий в deploy.yml)."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Render: деплой коммита ${GITHUB_SHA::7} запущен. Проверка: https://neptun-aquapark.onrender.com/api/health"
