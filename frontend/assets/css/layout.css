@@ -49,6 +49,49 @@ nav.main a:hover, nav.main a[aria-current="true"] { color: var(--ink); text-deco
 .account-link:hover { box-shadow: inset 0 0 0 1.5px var(--water); }
 .account-link[data-signed-in] { background: var(--deep); box-shadow: none; color: #fff; }
 
+/* Корзина в шапке: иконка и счётчик позиций (обновляется на каждое изменение) */
+.cart-link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  margin-left: 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink);
+  transition: border-color .2s ease;
+}
+.cart-link:hover { border-color: var(--water); }
+.cart-link svg { width: 19px; height: 19px; }
+.cart-link__badge {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--sun);
+  color: #0D2C3C;
+  font: 700 11px/19px "Golos Text", system-ui, sans-serif;
+  text-align: center;
+}
+.cart-link__badge[hidden], .cart-link__inline[hidden] { display: none; }
+.cart-link__inline {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sun);
+  color: #0D2C3C;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .lang {
   display: flex;
   margin-left: 10px;
@@ -102,6 +145,7 @@ nav.main a:hover, nav.main a[aria-current="true"] { color: var(--ink); text-deco
   .lang--menu { display: flex; align-self: flex-start; margin: 12px 2px 0; padding: 10px 12px 0; }
   .lang--menu button { padding: 5px 10px; }
   .theme-btn { width: 34px; height: 34px; flex: none; }
+  .cart-link { width: 34px; height: 34px; margin-left: 0; }
 }
 
 .burger { padding: 8px; border: 0; background: none; color: var(--ink); cursor: pointer; }

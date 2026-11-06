@@ -4,7 +4,7 @@
  * Те же правила валидации использует сервер (backend/src/feedback.js).
  */
 
-import { sendFeedback } from '../services/api.js?v=2';
+import { sendFeedback } from '../services/api.js?v=3';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

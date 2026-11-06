@@ -244,7 +244,7 @@
 { "id": "uuid", "kind": "visit", "adults": 2, "children": 1, "day": "weekend", "duration": "unl",
   "price": 19600, "status": "pending" /* pending|paid|cancelled|expired */,
   // контакт — только в ответе /api/admin/visits (+ email аккаунта в v.user, если гость был вошедшим):
-  "email": "гость@example.com", "firstName": "Ольга", "phone": null, "userId": null,
+  "email": "гость@example.com", "firstName": "Арман", "phone": null, "userId": null,
   "createdAt": "…", "updatedAt": "…", "paidAt": null, "attempts": 0, "receipt": null }
 ```
 
@@ -252,6 +252,31 @@
 (см. раздел выше): состав гостей со стороны клиента не влияет на цену, контакты валидируются
 на сервере, `pending → paid` атомарен, повторная оплата отвечает `alreadyPaid: true`.
 Неоплаченный визит живёт 24 часа, потом `expired`.
+
+## Корзина: несколько услуг одним платежом
+
+Единая вкладка «Цены и покупка» на главной: аквапарк, бассейн, фитнес, SPA. Фронт присылает
+только позиции `{ id, qty }` — id из каталога `frontend/assets/js/utils/cart.js → buildProducts(SITE_DATA)`
+(`park:adult:weekday:unl`, `pool:child:3`, `fitness:day:8`, `gold:6`, `massage:0`,
+`solarium:0:min:1`, `solarium:1:cert:50`, `press:course`…). Сумму считает сервер по тому же каталогу.
+Покупка без сессии; если гость вошёл — заказ привязывается к аккаунту. Маршруты — `backend/src/cart.js`,
+хранилище — `DATA_DIR/cart-orders.json`.
+
+| Метод и путь | Тело | Ответ |
+| --- | --- | --- |
+| `POST /api/cart-orders` | `{ items: [{ id, qty }], contact: { email, firstName?, phone? }, consent: true }` + `Idempotency-Key` | `201 { order }` (`200` при повторе); `422 { errors }` — пустая корзина, неизвестная позиция (`errors.items`), контакт, согласие |
+| `GET /api/cart-orders/:id` | — | `200 { order }`; `404` |
+| `POST /api/cart-orders/:id/pay` | `{ number, exp, cvc, holder }` | `200 { order, alreadyPaid }`; `402` — отклонение; `409` — заказ закрыт; `422` — карта |
+| `GET /api/admin/cart-orders` | — | `200 { items, total, today }` — с контактами (Bearer `ADMIN_TOKEN`) |
+
+```jsonc
+{ "id": "uuid", "kind": "cart", "total": 31300, "status": "pending" /* pending|paid|expired */,
+  "items": [{ "id": "park:adult:weekday:unl", "qty": 2, "title": "Аквапарк · Взрослый билет · будни, без лимита", "unitPrice": 6300, "sum": 12600 }],
+  "createdAt": "…", "updatedAt": "…", "paidAt": null, "attempts": 0, "receipt": null }
+```
+
+Ограничения: до 30 позиций, количество 1–50 (для поминутного солярия — минуты). Неоплаченный
+заказ живёт 24 часа. Остальное — как у визитов: атомарный `pending → paid`, чек HMAC (`planId: "cart"`).
 
 ## Расписание и записи на занятия
 

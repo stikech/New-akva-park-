@@ -11,7 +11,7 @@
  * Данные из API выводятся через textContent или escapeHtml — без сырого HTML.
  */
 
-import { accountApi, shopApi } from './services/api.js?v=2';
+import { accountApi, shopApi } from './services/api.js?v=3';
 import { initTabs } from './modules/tabs.js';
 import { initTheme } from './modules/theme.js';
 import { initShop } from './modules/shop.js';

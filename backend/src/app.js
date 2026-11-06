@@ -9,7 +9,8 @@
  *   /api/auth/*, /api/account*, /api/admin/users|membership|visit — личный кабинет (accounts.js)
  *   /api/orders/*               — покупка и продление абонементов (payments.js)
  *   /api/bookings/*             — запись на занятия (bookings.js)
- *   /api/visits/*               — онлайн-билеты аквапарка из калькулятора (visits.js)
+ *   /api/visits/*               — онлайн-билеты аквапарка (visits.js)
+ *   /api/cart-orders/*          — корзина: оплата нескольких услуг одним платежом (cart.js)
  *   GET  /admin                 — страница администратора
  *   GET  /account[/раздел]      — личный кабинет: /account/overview, /account/shop…
  *   GET  /, /prices, /rules, …  — главная: чистые адреса секций (роутер на клиенте скроллит)
@@ -32,6 +33,8 @@ import { createPaymentRoutes } from './payments.js';
 import { createBookingRoutes } from './bookings.js';
 import { createVisitRoutes } from './visits.js';
 import { createVisitStore } from './visit-store.js';
+import { createCartRoutes } from './cart.js';
+import { createCartStore } from './cart-store.js';
 
 /** Секции главной с собственными адресами вроде /prices — на них ведут кнопки шапки и меню. */
 const SITE_SECTION_SLUGS = ['slides', 'prices', 'rules', 'fitness', 'classes', 'spa', 'pool', 'contacts'];
@@ -45,6 +48,7 @@ export function createApp({
   orders = createOrderStore(config.dataDir),
   bookings = createBookingStore(config.dataDir),
   visits = createVisitStore(config.dataDir),
+  carts = createCartStore(config.dataDir),
   journal = createAudit(config.dataDir),
   clock,
 }) {
@@ -69,6 +73,9 @@ export function createApp({
   });
   const visitRoutes = createVisitRoutes({
     config, visits, journal, accounts, requireUser, requireAdmin, log, ...extraClock,
+  });
+  const cartRoutes = createCartRoutes({
+    config, carts, journal, accounts, requireUser, requireAdmin, log, ...extraClock,
   });
 
   function isAdmin(req) {
@@ -155,12 +162,13 @@ export function createApp({
     ...paymentRoutes.routes,
     ...bookingRoutes.routes,
     ...visitRoutes.routes,
+    ...cartRoutes.routes,
   };
 
   // Динамические маршруты с параметрами: /api/orders/:id, /api/bookings/:key.
   // Сегменты `:имя` передаются обработчику в params; расширять — по образцу payments.js.
   const dynamicRoutes = [];
-  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic]) {
+  for (const definition of [paymentRoutes.dynamic, bookingRoutes.dynamic, visitRoutes.dynamic, cartRoutes.dynamic]) {
     for (const [key, handler] of Object.entries(definition)) {
       const [method, pattern] = key.split(' ');
       dynamicRoutes.push({ method, segments: pattern.split('/').filter(Boolean), handler });

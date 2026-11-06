@@ -50,7 +50,7 @@ const createVisit = (base, body, headers = {}) => fetch(
   json(body, { 'Idempotency-Key': `visit-key-${Math.random().toString(36).slice(2, 10)}-${Date.now() % 100000}`, Origin: base, ...headers }),
 );
 
-const visitPayload = { adults: 2, children: 1, day: 'weekday', duration: 'unl', contact: { email: 'guest@neptun.kz', firstName: 'Ольга' }, consent: true };
+const visitPayload = { adults: 2, children: 1, day: 'weekday', duration: 'unl', contact: { email: 'guest@neptun.kz', firstName: 'Арман' }, consent: true };
 const pay = (base, id, card = CARD_OK) => fetch(`${base}/api/visits/${id}/pay`, json(card, { Origin: base }));
 
 describe('Визиты: создание', () => {

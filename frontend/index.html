@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="assets/css/main.css?v=7">
+  <link rel="stylesheet" href="assets/css/main.css?v=8">
 
-  <script type="module" src="assets/js/main.js?v=6"></script>
+  <script type="module" src="assets/js/main.js?v=7"></script>
 </head>
 <body>
 
@@ -46,6 +46,11 @@
       <span data-account-label>Войти</span>
     </a>
 
+    <a class="cart-link" href="/prices#cart" data-cart-link aria-label="Корзина">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2.2l2.1 11.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.2L21 8H6.2"/><circle cx="9.5" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg>
+      <span class="cart-link__badge" data-cart-badge hidden>0</span>
+    </a>
+
     <div class="lang" role="group" aria-label="Язык">
       <button type="button" data-lang="ru" aria-pressed="true">RU</button>
       <button type="button" data-lang="kz" aria-pressed="false">KZ</button>
@@ -70,6 +75,7 @@
     <a href="/spa" data-i18n="nSpa">SPA</a>
     <a href="/pool" data-i18n="nPool">Бассейн и кафе</a>
     <a href="/contacts" data-i18n="nContacts">Контакты</a>
+    <a href="/prices#cart" data-cart-link>Корзина <span class="cart-link__inline" data-cart-badge hidden>0</span></a>
     <a href="/account" data-account-link><span data-account-label="long">Личный кабинет</span></a>
 
     <!-- Второй переключатель для очень узких экранов: в шапке места нет.
@@ -102,7 +108,7 @@
       <p class="sub" data-i18n="heroSub">Крытый аквапарк в центре города: четыре горки со стартом на 22 метрах, детская зона, хамам, сауны и бассейн 25 метров. Открыты в любую погоду.</p>
 
       <div class="cta">
-        <a class="btn primary" href="#prices" data-i18n="ctaCalc">Рассчитать стоимость</a>
+        <a class="btn primary" href="/prices" data-i18n="ctaCalc">Рассчитать стоимость</a>
         <a class="btn ghost" href="tel:+77152336141" data-i18n="ctaCall">Позвонить</a>
       </div>
     </div>
@@ -143,79 +149,136 @@
     </div>
   </section>
 
-  <!-- ===== Цены ===== -->
+  <!-- ===== Цены и покупка: прайс всех сфер, единый калькулятор, корзина ===== -->
   <section id="prices" class="prices" aria-labelledby="prices-title">
     <div class="wrap">
-      <h2 id="prices-title" data-i18n="pricesTitle">Сколько стоит</h2>
-      <p class="lead">Время считается по браслету: от выдачи на входе до сдачи на кассе выхода.</p>
+      <h2 id="prices-title" data-i18n="pricesTitle">Цены и покупка</h2>
+      <p class="lead">Аквапарк, бассейн, фитнес и SPA — в одном месте. Посчитайте стоимость, сложите услуги в корзину и оплатите всё одним платежом.</p>
 
-      <div class="tabs" id="priceTabs" role="tablist" aria-label="Тарифы">
-        <button role="tab" id="tab-park" aria-selected="true" aria-controls="panel-park" type="button">Аквапарк</button>
-        <button role="tab" id="tab-pool" aria-selected="false" aria-controls="panel-pool" type="button">Плавательный бассейн</button>
+      <div class="tabs tabs--scroll" id="priceTabs" role="tablist" aria-label="Сферы и тарифы">
+        <button role="tab" id="tab-park" aria-selected="true" aria-controls="panel-park" type="button" data-category="park">Аквапарк</button>
+        <button role="tab" id="tab-pool" aria-selected="false" aria-controls="panel-pool" type="button" data-category="pool">Плавательный бассейн</button>
+        <button role="tab" id="tab-fitness" aria-selected="false" aria-controls="panel-fitness" type="button" data-category="fitness">Фитнес</button>
+        <button role="tab" id="tab-spa" aria-selected="false" aria-controls="panel-spa" type="button" data-category="spa">SPA</button>
       </div>
 
-      <div id="panel-park" role="tabpanel" aria-labelledby="tab-park" class="price-grid">
-        <div class="table-card">
-          <div class="scroll-x">
-            <table>
-              <thead><tr><th>Билет</th><th>Будни, 2 часа</th><th>Будни, без лимита</th><th>Выходные, 2 часа</th><th>Выходные, без лимита</th></tr></thead>
-              <tbody id="parkRows"></tbody>
-            </table>
+      <div class="price-grid">
+        <div class="price-panels">
+          <div id="panel-park" role="tabpanel" aria-labelledby="tab-park" class="table-card">
+            <div class="scroll-x">
+              <table>
+                <thead><tr><th>Билет</th><th>Будни, 2 часа</th><th>Будни, без лимита</th><th>Выходные, 2 часа</th><th>Выходные, без лимита</th></tr></thead>
+                <tbody id="parkRows"></tbody>
+              </table>
+            </div>
+            <p class="note" id="parkNote"></p>
+            <p class="note">Время считается по браслету: от выдачи на входе до сдачи на кассе выхода.</p>
           </div>
-          <p class="note" id="parkNote"></p>
+
+          <div id="panel-pool" role="tabpanel" aria-labelledby="tab-pool" class="table-card" hidden>
+            <div class="scroll-x">
+              <table>
+                <thead><tr><th>Билет</th><th>1 час</th><th>2 часа</th><th>3 часа</th><th>12 посещений, 2 месяца</th></tr></thead>
+                <tbody id="poolRows"></tbody>
+              </table>
+            </div>
+            <p class="note">Бассейн 25 м работает ежедневно с 08:00 до 23:00.</p>
+            <p class="note" id="poolSaving"></p>
+          </div>
+
+          <div id="panel-fitness" role="tabpanel" aria-labelledby="tab-fitness" class="table-card" hidden>
+            <div class="scroll-x">
+              <table class="catalog-table">
+                <thead><tr><th>Услуга</th><th>Цена</th><th><span class="sr-only">В корзину</span></th></tr></thead>
+                <tbody id="fitnessRows"></tbody>
+              </table>
+            </div>
+            <p class="note">Пакеты посещений и «Золотая» карта активируются на ресепшене по номеру заказа. Привязать абонемент к личному кабинету можно во вкладке «Магазин» кабинета.</p>
+          </div>
+
+          <div id="panel-spa" role="tabpanel" aria-labelledby="tab-spa" class="table-card" hidden>
+            <div class="scroll-x">
+              <table class="catalog-table">
+                <thead><tr><th>Услуга</th><th>Цена</th><th><span class="sr-only">В корзину</span></th></tr></thead>
+                <tbody id="spaRows"></tbody>
+              </table>
+            </div>
+            <p class="note">Время сеанса массажа согласуйте по телефону после оплаты: 33-64-41, 46-39-79.</p>
+          </div>
         </div>
 
-        <div class="calc" id="calculator" aria-live="polite">
-          <h3>Калькулятор визита</h3>
-          <div class="row">
-            <span>Взрослые</span>
-            <div class="stepper">
-              <button type="button" data-guest="adult" data-step="-1" aria-label="Меньше взрослых">−</button>
-              <output data-count="adult">2</output>
-              <button type="button" data-guest="adult" data-step="1" aria-label="Больше взрослых">+</button>
+        <!-- Единый калькулятор: режим меняется вместе с вкладкой (modules/calculator.js) -->
+        <div class="calc" id="calculator">
+          <h3><span data-i18n="calcTitle">Калькулятор</span> · <span data-calc-category>Аквапарк</span></h3>
+
+          <div data-calc-mode="park">
+            <div class="row">
+              <span>Взрослые</span>
+              <div class="stepper">
+                <button type="button" data-guest="adult" data-step="-1" aria-label="Меньше взрослых">−</button>
+                <output data-count="adult">2</output>
+                <button type="button" data-guest="adult" data-step="1" aria-label="Больше взрослых">+</button>
+              </div>
+            </div>
+            <div class="row">
+              <span>Дети до 14 лет</span>
+              <div class="stepper">
+                <button type="button" data-guest="child" data-step="-1" aria-label="Меньше детей">−</button>
+                <output data-count="child">1</output>
+                <button type="button" data-guest="child" data-step="1" aria-label="Больше детей">+</button>
+              </div>
+            </div>
+            <div class="row">
+              <span>День</span>
+              <div class="seg" data-group="day">
+                <button type="button" data-value="weekday" aria-pressed="true">Будни</button>
+                <button type="button" data-value="weekend" aria-pressed="false">Выходные</button>
+              </div>
+            </div>
+            <div class="row">
+              <span>Время</span>
+              <div class="seg" data-group="duration">
+                <button type="button" data-value="h2" aria-pressed="false">2 часа</button>
+                <button type="button" data-value="unl" aria-pressed="true">Без лимита</button>
+              </div>
             </div>
           </div>
-          <div class="row">
-            <span>Дети до 14 лет</span>
-            <div class="stepper">
-              <button type="button" data-guest="child" data-step="-1" aria-label="Меньше детей">−</button>
-              <output data-count="child">1</output>
-              <button type="button" data-guest="child" data-step="1" aria-label="Больше детей">+</button>
+
+          <div data-calc-mode="service" hidden>
+            <div class="calc__field">
+              <label for="calcService">Услуга</label>
+              <select id="calcService" class="calc__select"></select>
             </div>
-          </div>
-          <div class="row">
-            <span>День</span>
-            <div class="seg" data-group="day">
-              <button type="button" data-value="weekday" aria-pressed="true">Будни</button>
-              <button type="button" data-value="weekend" aria-pressed="false">Выходные</button>
+            <div class="row">
+              <span data-calc-unit-label>Количество</span>
+              <div class="stepper">
+                <button type="button" data-qty-step="-1" aria-label="Меньше">−</button>
+                <output data-count="qty">1</output>
+                <button type="button" data-qty-step="1" aria-label="Больше">+</button>
+              </div>
             </div>
+            <div class="row"><span>Цена за единицу</span><b data-unit-price>—</b></div>
           </div>
-          <div class="row">
-            <span>Время</span>
-            <div class="seg" data-group="duration">
-              <button type="button" data-value="h2" aria-pressed="false">2 часа</button>
-              <button type="button" data-value="unl" aria-pressed="true">Без лимита</button>
-            </div>
-          </div>
-          <div class="total"><span>Итого</span><b data-total>—</b></div>
-          <button class="btn primary btn--block calc__buy" type="button" data-visit-buy data-i18n="calcBuy">Купить билеты</button>
-          <p class="note" data-i18n="calcNote">Оплата картой на сайте — билеты сразу после оплаты, касса не нужна.</p>
+
+          <div class="total" aria-live="polite"><span>Итого</span><b data-total>—</b></div>
+          <button class="btn primary btn--block calc__buy" type="button" data-calc-add data-i18n="calcBuy">Добавить в корзину</button>
+          <p class="calc__added" data-calc-added role="status"></p>
+          <p class="note" data-i18n="calcNote">Можно сложить в корзину аквапарк, бассейн, фитнес и SPA и оплатить всё сразу картой на сайте.</p>
         </div>
       </div>
 
-      <div id="panel-pool" role="tabpanel" aria-labelledby="tab-pool" class="price-grid" hidden>
-        <div class="table-card">
-          <div class="scroll-x">
-            <table>
-              <thead><tr><th>Билет</th><th>1 час</th><th>2 часа</th><th>3 часа</th><th>12 посещений, 2 месяца</th></tr></thead>
-              <tbody id="poolRows"></tbody>
-            </table>
-          </div>
-          <p class="note">Бассейн 25 м работает ежедневно с 08:00 до 23:00.</p>
+      <!-- Корзина: сохраняется в браузере (localStorage) и переживает обновление страницы -->
+      <div class="cart" id="cart" aria-labelledby="cart-title" tabindex="-1">
+        <div class="cart__head">
+          <h3 id="cart-title"><span data-i18n="cartTitle">Корзина</span> <span class="cart__count" data-cart-count></span></h3>
+          <button class="cart__clear" type="button" data-cart-clear hidden>Очистить</button>
         </div>
-        <div class="calc">
-          <h3>Абонемент выгоднее</h3>
-          <p class="lead" id="poolSaving"></p>
+        <p class="cart__empty" data-cart-empty>Корзина пуста — выберите услугу в калькуляторе или нажмите «+» в прайсе.</p>
+        <ul class="cart__lines" data-cart-lines aria-live="polite"></ul>
+        <div class="cart__footer" data-cart-footer hidden>
+          <div class="total"><span>Итого к оплате</span><b data-cart-total>—</b></div>
+          <button class="btn primary btn--block" type="button" data-cart-checkout data-i18n="cartPay">Оплатить всё</button>
+          <p class="note">Окончательную сумму считает сервер по прайсу. Корзина хранится в этом браузере и не пропадает после обновления страницы.</p>
         </div>
       </div>
     </div>
@@ -405,13 +468,14 @@
   <div class="wrap footer__bottom">
     <span>Цены — по прейскуранту akvapark.kz</span>
     <span>ул. Юрия Медведева, 41</span>
+    <span>© 2026 Никуша — владелец сайта</span>
   </div>
 </footer>
 
-<!-- Покупка билетов (калькулятор → visit-checkout.js) -->
-<div class="visit-modal" id="visitModal" hidden>
-  <div class="visit-modal__overlay" data-visit-close></div>
-  <div class="visit-modal__card" role="dialog" aria-modal="true" aria-labelledby="visitModalTitle"></div>
+<!-- Оплата корзины (modules/cart-checkout.js) -->
+<div class="visit-modal" id="cartModal" hidden>
+  <div class="visit-modal__overlay" data-modal-close></div>
+  <div class="visit-modal__card" role="dialog" aria-modal="true" aria-labelledby="cartModalTitle"></div>
 </div>
 
 </body>

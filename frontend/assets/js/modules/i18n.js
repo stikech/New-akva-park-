@@ -3,7 +3,7 @@
  * Русские строки снимаются из DOM при старте, чтобы не дублировать их в JS.
  */
 
-import { DEFAULT_LANG, HTML_LANG, STATIC_TRANSLATIONS, DYNAMIC_STRINGS } from '../config/i18n.js?v=3';
+import { DEFAULT_LANG, HTML_LANG, STATIC_TRANSLATIONS, DYNAMIC_STRINGS } from '../config/i18n.js?v=4';
 
 const STORAGE_KEY = 'neptun-lang';
 

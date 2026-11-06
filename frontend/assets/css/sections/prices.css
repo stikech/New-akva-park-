@@ -1,4 +1,4 @@
-/* Цены: таблицы тарифов и калькулятор визита. */
+/* Цены и покупка: прайс всех сфер, единый калькулятор, корзина и чекаут. */
 
 .prices { background: var(--lagoon); }
 .price-grid { display: grid; gap: 24px; margin-top: 24px; }
@@ -78,13 +78,12 @@ body.visit-modal-open { overflow: hidden; }
 .vc-summary b { color: var(--ink); }
 
 /* Форма чекаута повторяет язык кабинета: те же классы, локальные замены */
-#visitForm { margin-top: 16px; display: grid; gap: 14px; align-content: start; }
+#cartForm { margin-top: 16px; display: grid; gap: 14px; align-content: start; }
 .visit-modal .btn--block { width: 100%; }
 .visit-modal .acc-status { font-size: 14px; margin: 0; }
 .visit-modal .acc-status:empty { display: none; }
 .visit-modal .acc-status[data-kind="error"] { color: var(--error); }
 .vc-cols { display: grid; gap: 14px; }
-@media (min-width: 560px) { .vc-cols { grid-template-columns: 1fr 1fr; gap: 12px; } }
 @media (min-width: 560px) { .vc-cols { grid-template-columns: 1fr 1fr; gap: 12px; } }
 
 .vc-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--muted); margin-top: 12px; cursor: pointer; }
@@ -109,3 +108,123 @@ body.visit-modal-open { overflow: hidden; }
 .vc-list > div { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .vc-list dt { color: var(--muted); font-size: 14px; }
 .vc-list dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+
+/* ---------- Единая вкладка: вкладки сфер, прайс-каталог, калькулятор ---------- */
+
+#priceTabs { margin-top: 24px; }
+.price-panels { min-width: 0; }
+@media (min-width: 960px) { .calc { position: sticky; top: 84px; align-self: start; } }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.catalog-table td, .catalog-table th { vertical-align: middle; }
+.catalog-table__group th {
+  padding-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.catalog-table__price { white-space: nowrap; font-weight: 600; }
+.catalog-table__price small { color: var(--muted); font-weight: 400; }
+.catalog-table__add { width: 44px; text-align: right; }
+
+.add-btn {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--mist);
+  color: var(--ink);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.add-btn:hover { border-color: var(--water); }
+.add-btn:active { background: var(--lagoon); }
+
+.calc__field { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.calc__field label { font-size: 14px; color: var(--muted); }
+.calc__select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--mist);
+  color: var(--ink);
+  font: inherit;
+}
+.calc__select:focus { outline: 2px solid var(--water); outline-offset: 1px; }
+.calc__added { min-height: 1.4em; margin: 10px 0 0; color: var(--ok); font-size: 14px; }
+.calc__added:empty { min-height: 0; margin: 0; }
+.stepper button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---------- Корзина ---------- */
+
+.cart {
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  scroll-margin-top: 84px;
+}
+.cart:focus { outline: none; }
+.cart__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.cart__head h3 { margin: 0; }
+.cart__count { color: var(--muted); font: 500 15px "Golos Text", system-ui, sans-serif; }
+.cart__clear { border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.cart__clear:hover { color: var(--error); }
+.cart__empty { margin: 14px 0 0; color: var(--muted); }
+.cart__lines { list-style: none; margin: 14px 0 0; padding: 0; }
+.cart__footer .total { margin-top: 14px; }
+.cart__footer .btn { margin-top: 14px; }
+@media (min-width: 720px) {
+  .cart__footer { display: grid; grid-template-columns: 1fr minmax(240px, 320px); gap: 0 24px; align-items: center; }
+  .cart__footer .total { grid-column: 1 / -1; }
+  .cart__footer .btn { grid-column: 2; grid-row: 2; }
+  .cart__footer .note { grid-column: 1; grid-row: 2; margin: 14px 0 0; }
+}
+
+.cart-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "info remove" "qty sum";
+  gap: 10px 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cart-line__info { grid-area: info; display: grid; gap: 3px; min-width: 0; }
+.cart-line__title { overflow-wrap: anywhere; }
+.cart-line__unit { color: var(--muted); font-size: 14px; }
+.cart-line__qty { grid-area: qty; }
+.cart-line__sum { grid-area: sum; justify-self: end; white-space: nowrap; }
+.cart-line__remove {
+  grid-area: remove;
+  justify-self: end;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cart-line__remove:hover { background: var(--mist); color: var(--error); }
+@media (min-width: 720px) {
+  .cart-line { grid-template-columns: minmax(0, 1fr) auto 110px 32px; grid-template-areas: "info qty sum remove"; }
+}
+
+/* ---------- Чекаут корзины ---------- */
+
+.vc-lines { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14.5px; }
+.vc-lines li { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.vc-lines small { color: var(--muted); white-space: nowrap; }
+.vc-lines b { white-space: nowrap; }

@@ -10,7 +10,7 @@
  * цифры. Форма предупреждает об этом честно, без мелкого шрифта.
  */
 
-import { shopApi, accountApi } from '../services/api.js?v=2';
+import { shopApi, accountApi } from '../services/api.js?v=3';
 import { formatCardNumber, normalizeCardNumber, validateCard } from '../utils/card.js';
 import { escapeHtml, formatPrice, plural } from '../utils/format.js';
 

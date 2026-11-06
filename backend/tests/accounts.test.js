@@ -107,7 +107,7 @@ describe('личный кабинет', () => {
 
     const c = client(srv.base);
     await c.call('POST', '/api/auth/login', { email: reg.email, password: reg.password });
-    const upd = await c.call('PATCH', '/api/account', { lastName: 'Петрова', phone: '8 (705) 123-45-67', birthDate: '1995-03-08', lang: 'kz' });
+    const upd = await c.call('PATCH', '/api/account', { lastName: 'Петров', phone: '8 (705) 123-45-67', birthDate: '1995-03-08', lang: 'kz' });
     assert.equal(upd.status, 200);
     assert.equal(upd.body.user.phone, '+77051234567');
     assert.equal(upd.body.user.lang, 'kz');
@@ -118,7 +118,7 @@ describe('личный кабинет', () => {
 
     const cleared = await c.call('PATCH', '/api/account', { phone: '' });
     assert.equal(cleared.body.user.phone, null);
-    assert.equal(cleared.body.user.lastName, 'Петрова'); // не переданные поля не трогаются
+    assert.equal(cleared.body.user.lastName, 'Петров'); // не переданные поля не трогаются
   });
 
   test('CSRF: запрос с чужим Origin → 403', async () => {
@@ -126,7 +126,7 @@ describe('личный кабинет', () => {
     await c.call('POST', '/api/auth/login', { email: reg.email, password: reg.password });
     const r = await c.call('PATCH', '/api/account', { lastName: 'Взлом' }, { Origin: 'https://evil.example' });
     assert.equal(r.status, 403);
-    const same = await c.call('PATCH', '/api/account', { lastName: 'Петрова' }, { Origin: srv.base });
+    const same = await c.call('PATCH', '/api/account', { lastName: 'Петров' }, { Origin: srv.base });
     assert.equal(same.status, 200);
   });
 
@@ -326,7 +326,8 @@ describe('демо-аккаунты', () => {
       const fresh = createAccountStore(dataDir);
       await seedDemoAccounts(fresh, { log: silentLog });
       const after = await fresh.findUserByEmail('demo@neptun.kz');
-      assert.equal(after.lastName, 'Петрова');
+      assert.equal(after.lastName, null);
+      assert.equal(after.firstName, 'Никуша');
       assert.equal(after.id, before.id);
       assert.equal((await fresh.listUsers()).length, 3);
     } finally {

@@ -1,41 +1,110 @@
-/** Калькулятор визита в аквапарк. Состояние локальное, расчёт — в utils/pricing.js. */
+/**
+ * Единый калькулятор: аквапарк, бассейн, фитнес и SPA.
+ *
+ * Режим калькулятора следует за выбранной вкладкой прайса (#priceTabs):
+ *  - «Аквапарк» — привычный расчёт визита: взрослые, дети, будни/выходные, 2 часа/без лимита;
+ *  - остальные сферы — выбор услуги из прайса этой сферы и количество.
+ * «Добавить в корзину» кладёт позиции в общую корзину (modules/cart.js); итог
+ * считается по тому же каталогу, что и на сервере (utils/cart.js).
+ */
 
-import { formatPrice } from '../utils/format.js';
-import { calcParkTotal, clampGuests } from '../utils/pricing.js';
+import { escapeHtml, formatPrice } from '../utils/format.js';
+import { CART_CATEGORIES, CART_MAX_QTY, parkLines, priceCart } from '../utils/cart.js';
+import { clampGuests } from '../utils/pricing.js';
 
-export function initCalculator(root, park, initialDay) {
-  const state = { adult: 2, child: 1, day: initialDay, duration: 'unl' };
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const CATEGORY_LABEL = Object.fromEntries(CART_CATEGORIES.map((c) => [c.id, c.label]));
 
-  const outputs = {
-    adult: root.querySelector('[data-count="adult"]'),
-    child: root.querySelector('[data-count="child"]'),
-    total: root.querySelector('[data-total]'),
+export function initCalculator({ root, tablist }, cart, initialDay) {
+  const products = [...cart.index.values()];
+  const state = {
+    category: 'park',
+    park: { adult: 2, child: 1, day: initialDay, duration: 'unl' },
+    service: {}, // выбранная услуга по сфере: { pool: 'pool:adult:0', … }
+    qty: 1,
   };
-  const groups = [...root.querySelectorAll('.seg[data-group]')];
 
-  function render() {
-    outputs.adult.textContent = state.adult;
-    outputs.child.textContent = state.child;
-    groups.forEach((group) => {
-      group.querySelectorAll('button').forEach((btn) =>
-        btn.setAttribute('aria-pressed', String(btn.dataset.value === state[group.dataset.group])));
-    });
-    outputs.total.textContent = formatPrice(calcParkTotal(park, state));
+  const parkBox = $('[data-calc-mode="park"]', root);
+  const serviceBox = $('[data-calc-mode="service"]', root);
+  const select = $('#calcService', root);
+  const groups = $$('.seg[data-group]', parkBox);
+  const out = {
+    category: $('[data-calc-category]', root),
+    adult: $('[data-count="adult"]', root),
+    child: $('[data-count="child"]', root),
+    qty: $('[data-count="qty"]', root),
+    unitPrice: $('[data-unit-price]', root),
+    unitLabel: $('[data-calc-unit-label]', root),
+    total: $('[data-total]', root),
+    added: $('[data-calc-added]', root),
+    add: $('[data-calc-add]', root),
+  };
+
+  const byCategory = (category) => products.filter((p) => p.category === category);
+  const currentProduct = () => cart.index.get(state.service[state.category]);
+
+  /** Позиции, которые сейчас уйдут в корзину. */
+  function pendingLines() {
+    if (state.category === 'park') return parkLines(state.park);
+    const p = currentProduct();
+    return p ? [{ id: p.id, qty: state.qty }] : [];
   }
 
-  // Покупка билетов: модуль visit-checkout.js ловит событие и открывает чекаут
-  const buyBtn = root.querySelector('[data-visit-buy]');
-  buyBtn?.addEventListener('click', (event) => {
-    root.dispatchEvent(new CustomEvent('neptun:visit-buy', {
-      bubbles: true,
-      detail: { ...state, source: event.currentTarget },
-    }));
-  });
+  function fillSelect() {
+    const list = byCategory(state.category);
+    if (!state.service[state.category] && list.length) state.service[state.category] = list[0].id;
+    const grouped = new Map();
+    for (const p of list) {
+      if (!grouped.has(p.group)) grouped.set(p.group, []);
+      grouped.get(p.group).push(p);
+    }
+    select.innerHTML = [...grouped].map(([group, items]) => `
+      <optgroup label="${escapeHtml(group)}">
+        ${items.map((p) => `<option value="${escapeHtml(p.id)}" ${p.id === state.service[state.category] ? 'selected' : ''}>${escapeHtml(p.option)} — ${formatPrice(p.price)}${p.unit === 'min' ? '/мин' : ''}</option>`).join('')}
+      </optgroup>`).join('');
+  }
 
-  root.querySelectorAll('.stepper button').forEach((btn) => {
+  function render() {
+    const isPark = state.category === 'park';
+    parkBox.hidden = !isPark;
+    serviceBox.hidden = isPark;
+    out.category.textContent = CATEGORY_LABEL[state.category] ?? '';
+
+    if (isPark) {
+      out.adult.textContent = state.park.adult;
+      out.child.textContent = state.park.child;
+      groups.forEach((group) => {
+        $$('button', group).forEach((btn) =>
+          btn.setAttribute('aria-pressed', String(btn.dataset.value === state.park[group.dataset.group])));
+      });
+    } else {
+      const p = currentProduct();
+      out.qty.textContent = state.qty;
+      out.unitLabel.textContent = p?.unit === 'min' ? 'Минуты' : 'Количество';
+      out.unitPrice.textContent = p ? `${formatPrice(p.price)}${p.unit === 'min' ? ' / мин' : ''}` : '—';
+    }
+
+    const lines = pendingLines();
+    out.total.textContent = formatPrice(priceCart(lines, cart.index).total);
+    out.add.disabled = lines.length === 0;
+  }
+
+  function setCategory(category) {
+    if (!CATEGORY_LABEL[category] || category === state.category) return;
+    state.category = category;
+    state.qty = 1;
+    out.added.textContent = '';
+    if (category !== 'park') fillSelect();
+    render();
+  }
+
+  // ---------- события ----------
+
+  $$('.stepper button[data-guest]', parkBox).forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.dataset.guest;
-      state[key] = clampGuests(state[key] + Number(btn.dataset.step));
+      state.park[key] = clampGuests(state.park[key] + Number(btn.dataset.step));
       render();
     });
   });
@@ -44,10 +113,49 @@ export function initCalculator(root, park, initialDay) {
     group.addEventListener('click', (event) => {
       const btn = event.target.closest('button');
       if (!btn) return;
-      state[group.dataset.group] = btn.dataset.value;
+      state.park[group.dataset.group] = btn.dataset.value;
       render();
     });
   });
 
+  $$('[data-qty-step]', serviceBox).forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.qty = Math.min(CART_MAX_QTY, Math.max(1, state.qty + Number(btn.dataset.qtyStep)));
+      render();
+    });
+  });
+
+  select.addEventListener('change', () => {
+    state.service[state.category] = select.value;
+    state.qty = 1;
+    render();
+  });
+
+  out.add.addEventListener('click', () => {
+    const lines = pendingLines();
+    if (!lines.length) return;
+    cart.addMany(lines);
+    const { total } = priceCart(lines, cart.index);
+    out.added.textContent = `Добавлено в корзину на ${formatPrice(total)}.`;
+  });
+
+  // Режим следует за вкладкой прайса: наблюдаем aria-selected (клик, стрелки, ссылка #tab-…)
+  const syncWithTabs = () => {
+    const selected = tablist?.querySelector('[role="tab"][aria-selected="true"]');
+    if (selected?.dataset.category) setCategory(selected.dataset.category);
+  };
+  if (tablist) {
+    new MutationObserver(syncWithTabs).observe(tablist, { subtree: true, attributes: true, attributeFilter: ['aria-selected'] });
+  }
+
+  syncWithTabs();
   render();
+
+  return {
+    /** Показать подтверждение после добавления из таблицы прайса. */
+    notifyAdded(id) {
+      const p = cart.index.get(id);
+      if (p) out.added.textContent = `«${p.title}» — в корзине.`;
+    },
+  };
 }

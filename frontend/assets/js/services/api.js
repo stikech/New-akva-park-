@@ -127,6 +127,16 @@ export const visitApi = {
   pay: (id, card) => accountRequest('POST', `/visits/${id}/pay`, card),
 };
 
+/**
+ * Корзина: несколько услуг (аквапарк, бассейн, фитнес, SPA) одним платежом, без входа.
+ * Фронт присылает только { id, qty } позиций — сумму считает сервер.
+ */
+export const cartApi = {
+  create: (payload) => accountRequest('POST', '/cart-orders', payload, { idempotencyKey: crypto.randomUUID() }),
+  order: (id) => accountRequest('GET', `/cart-orders/${id}`),
+  pay: (id, card) => accountRequest('POST', `/cart-orders/${id}/pay`, card),
+};
+
 /** fetch с таймаутом и проверкой статуса. */
 async function fetchJson(url, { timeoutMs = 8000, ...init } = {}) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });

@@ -3,7 +3,7 @@
  * Запрос к API не блокирует страницу; при ошибке остаётся «Войти» — ссылка ведёт туда же.
  */
 
-import { accountApi } from '../services/api.js?v=2';
+import { accountApi } from '../services/api.js?v=3';
 
 export function initAccountLink(links, i18n) {
   let signedIn = false;
